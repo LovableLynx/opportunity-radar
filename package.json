@@ -1,0 +1,19 @@
+{
+  "name": "opportunity-radar",
+  "version": "0.1.0",
+  "description": "Apify Actor that matches African students against real scholarship, grant, and admission opportunities, and assesses trust risk with evidence.",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "start:apify": "apify run"
+  },
+  "dependencies": {
+    "apify": "^3.2.6",
+    "crawlee": "^3.11.5",
+    "@anthropic-ai/sdk": "^0.32.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

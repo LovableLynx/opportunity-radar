@@ -1,0 +1,9 @@
+{
+  "actorSpecification": 1,
+  "name": "opportunity-radar",
+  "title": "Opportunity Radar",
+  "description": "Matches African students against real scholarship, grant, and admission opportunities, and assesses trust risk with evidence.",
+  "version": "0.1",
+  "input": "./input_schema.json",
+  "dockerfile": "../Dockerfile"
+}

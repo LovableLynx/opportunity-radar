@@ -1,0 +1,40 @@
+{
+  "title": "Opportunity Radar input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "educationLevel": {
+      "title": "Education level",
+      "type": "string",
+      "enum": ["Bachelors", "Masters", "PhD"],
+      "editor": "select",
+      "description": "The user's current or target education level."
+    },
+    "fieldOfStudy": {
+      "title": "Field of study",
+      "type": "string",
+      "editor": "textfield",
+      "description": "e.g. Computer Science, Public Health, Economics"
+    },
+    "country": {
+      "title": "Country / nationality",
+      "type": "string",
+      "editor": "textfield",
+      "description": "Used to check nationality/location-based eligibility."
+    },
+    "fundingNeeded": {
+      "title": "Needs funding",
+      "type": "boolean",
+      "editor": "checkbox",
+      "default": true
+    },
+    "gpaOrGrade": {
+      "title": "GPA or grade (optional)",
+      "type": "string",
+      "editor": "textfield",
+      "description": "e.g. 3.6/4.0 or Second Class Upper",
+      "nullable": true
+    }
+  },
+  "required": ["educationLevel", "fieldOfStudy", "country"]
+}

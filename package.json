@@ -10,8 +10,7 @@
   },
   "dependencies": {
     "apify": "^3.2.6",
-    "crawlee": "^3.11.5",
-    "@anthropic-ai/sdk": "^0.32.1"
+    "@google/generative-ai": "^0.21.0"
   },
   "engines": {
     "node": ">=18.0.0"

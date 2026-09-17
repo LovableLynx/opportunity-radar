@@ -26,6 +26,7 @@
       "title": "Needs funding",
       "type": "boolean",
       "editor": "checkbox",
+      "description": "Whether the student needs full or partial funding.",
       "default": true
     },
     "gpaOrGrade": {

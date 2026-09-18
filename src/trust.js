@@ -1,4 +1,4 @@
-// Phase 3: trust/risk scoring.
+// Trust/risk scoring.
 //
 // We do NOT ask an LLM "is this legitimate" and take its word for it — that
 // claims a certainty no evidence can back up. Instead we gather concrete
@@ -11,7 +11,7 @@
 // keep visible in the UI copy, not just in our own heads.
 
 // Starting weights — a reasonable first pass, not a final answer. Tune these
-// once we've seen how they perform against the phase 5 eval set.
+// once we've seen how they perform against a real evaluation set.
 const SIGNAL_WEIGHTS = {
     upfrontPayment: 3,
     noIndependentPresence: 2,
@@ -93,7 +93,7 @@ function checkNoSecondaryListing(searchEvidence) {
 /**
  * Computes a risk score and category from a listing plus optional search
  * evidence. searchEvidence is optional so this can be tested and used before
- * phase 3's Google Custom Search integration exists.
+ * the Google Custom Search integration exists.
  */
 export function scoreListing(listing, searchEvidence = null) {
     const signals = {

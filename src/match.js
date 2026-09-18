@@ -1,4 +1,4 @@
-// Phase 2: eligibility matching.
+// Eligibility matching.
 //
 // We do NOT hand the whole eligibility text to an LLM and ask "is this student
 // eligible". Facts that can be objectively compared — is the deadline still open,

@@ -1,4 +1,4 @@
-// Phase 1: fetch PhDportal's scholarship search results and extract structured
+// Fetch PhDportal's scholarship search results and extract structured
 // listings. PhDportal blocks bare Playwright requests outright (403), even with a
 // residential proxy and browser fingerprinting, so instead of fighting that block
 // directly we call Apify's own "Website Content Crawler" Actor to fetch pages

@@ -53,8 +53,8 @@ test('urgency-pressure language alone is Some Concerns, not High Risk', () => {
 
 test('a synthetic adversarial listing with multiple red flags scores High Risk', () => {
     // A deliberately constructed test case combining several known scam
-    // patterns, per the phase 5 plan — labeled here as synthetic, not
-    // presented as an organic discovery.
+    // patterns — labeled here as synthetic, not presented as an organic
+    // discovery.
     const listing = {
         title: 'SYNTHETIC TEST CASE: Too Good To Be True Grant',
         description: 'Act now! Only 24 hours left to claim this fully-funded grant. Send a small refundable deposit to confirm your slot.',
@@ -86,8 +86,8 @@ test('no search evidence available does not penalize the listing', () => {
         eligibility: 'Nationality: Any. Study experience required: Bachelor degree.',
     };
 
-    // searchEvidence omitted entirely (phase 3 Google Custom Search not wired
-    // up yet) — checks that need it should not fire false positives.
+    // searchEvidence omitted entirely (Google Custom Search not wired up
+    // yet) — checks that need it should not fire false positives.
     const result = scoreListing(listing);
 
     assert.equal(result.trustRisk, 'Low Risk');

@@ -35,7 +35,7 @@ test('deadline in the past fails as Not Eligible, no LLM call made', async () =>
 
 test('real Erasmus+ eligibility text: Austrian-only requirement fails for a Nigerian student', async () => {
     // This is the actual eligibility text we scraped for the Erasmus+ listing
-    // during phase 1 enrichment testing.
+    // during enrichment testing.
     const listing = {
         title: 'Erasmus+ - Grants for study mobility',
         deadline: null,

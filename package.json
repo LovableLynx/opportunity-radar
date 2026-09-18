@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/main.js",
     "start:apify": "apify run",
-    "test": "node --test test/"
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "apify": "^3.2.6",

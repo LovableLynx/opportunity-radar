@@ -13,18 +13,28 @@ const client = await Actor.newClient();
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
-// Gemini occasionally returns a transient 503 under load. Retry with backoff
-// rather than letting one hiccup fail a run that already paid for real scraping.
-async function generateContentWithRetry(prompt, retries = 3) {
+// This Gemini key's free tier caps at 5 requests/minute (not just a daily cap),
+// so we pace every call at least 13 seconds apart regardless of retries — cheap
+// insurance against bursting past the limit when scraping, enrichment, and
+// matching calls land close together.
+const MIN_MS_BETWEEN_CALLS = 13000;
+let lastCallAt = 0;
+
+async function generateContentWithRetry(prompt, retries = 4) {
+    const waitFor = lastCallAt + MIN_MS_BETWEEN_CALLS - Date.now();
+    if (waitFor > 0) await new Promise((resolve) => setTimeout(resolve, waitFor));
+    lastCallAt = Date.now();
+
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
             return await model.generateContent(prompt);
         } catch (err) {
             const isRetryable = err.status === 503 || err.status === 429;
             if (!isRetryable || attempt === retries) throw err;
-            const delayMs = 2000 * attempt;
+            const delayMs = 15000 * attempt; // rate-limit errors need real recovery time, not a quick backoff
             console.log(`Gemini call failed (${err.status}), retrying in ${delayMs}ms (attempt ${attempt}/${retries})`);
             await new Promise((resolve) => setTimeout(resolve, delayMs));
+            lastCallAt = Date.now();
         }
     }
 }

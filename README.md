@@ -21,9 +21,16 @@ npm install
 cp .env.example .env   # fill in your own keys, never commit .env
 ```
 
-You'll need your own Anthropic API key and Google Custom Search credentials
-(API key + Search Engine ID) once we get to Phase 2/3 — ask in the group if
-you don't have these yet.
+You'll need your own Gemini API key (Google AI Studio) and, later, Google
+Custom Search credentials (API key + Search Engine ID) for phase 3 — ask in
+the group if you don't have these yet.
+
+Heads up on the Gemini free tier: it's capped at 5 requests/minute AND 20
+requests/day per key. Our pipeline paces calls at least 13 seconds apart to
+respect the per-minute limit, but the daily cap is real — if you're testing
+and hit a 429 quota error, that key is done for the day. Set
+`OPPORTUNITY_RADAR_TEST_MODE=1` as an env var to cap runs to 3 listings
+instead of 20, which uses far fewer calls per test.
 
 ## Running it locally
 
@@ -34,15 +41,28 @@ apify run
 Output shows up in `storage/datasets/default/` as one JSON file per scraped
 listing.
 
+## Running the tests
+
+```bash
+npm test
+```
+
+These are unit tests for the deterministic matching logic in `src/match.js`
+(deadline, nationality, education level checks) — they never call Gemini, so
+you can run them freely without touching API quota. Useful for verifying
+logic changes before spending a real API call to confirm end to end.
+
 ## Where things stand
 
 - [x] Phase 0 — project scaffold
-- [ ] Phase 1 — single scraper (PhDportal), raw output only
-  - Heads up: the CSS selectors in `src/main.js` are placeholders, not
-    verified against the real page yet. First job here is running it,
-    seeing what actually comes back, and fixing them.
-- [ ] Phase 2 — eligibility matching (deterministic checks + LLM for the
-      ambiguous stuff)
+- [x] Phase 1 — scraping PhDportal via Apify's Website Content Crawler
+      (needed to get past its bot detection) + Gemini extraction, including
+      following each listing's detail page for real eligibility text
+- [x] Phase 2 — eligibility matching: deterministic checks (deadline,
+      nationality, education level) verified with local unit tests; LLM
+      interpretation of ambiguous criteria written but not yet confirmed
+      against a real Gemini call end to end (blocked by free-tier quota,
+      not a known bug)
 - [ ] Phase 3 — trust/risk scoring, backed by Google Custom Search evidence
 - [ ] Phase 4 — second source (Opportunity Desk) + frontend, stretch goals
 - [ ] Phase 5 — eval set (real + adversarial listings) and demo script

@@ -116,5 +116,7 @@ it comes up in the demo — it's a real gap, not a solved problem.
 
 - **Oluwadarasimi** — Actor/backend: scraping, matching logic, trust scoring,
   and QA (testing each phase before we move on)
-- **Partner** — frontend: the input form + results view for Phase 4, calling
-  the Actor through the Apify API
+- **UI/UX** — designs the input form and results view (mockups/wireframes)
+  for phase 4
+- **Frontend partner** — builds the designed UI in code, calling the Actor
+  through the Apify API

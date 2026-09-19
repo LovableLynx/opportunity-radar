@@ -1,0 +1,117 @@
+[
+  {
+    "label": "Austrian-only scholarship rejects a Nigerian profile (real listing)",
+    "listing": {
+      "title": "Erasmus+ - Grants for study mobility",
+      "deadline": "Not specified",
+      "eligibility": "Eligibility Criteria:\n- Erasmus+ provides grants for full-time studies abroad\n- Nationality: Austrian\n- Study experience required: High school"
+    },
+    "profile": { "educationLevel": "PhD", "fieldOfStudy": "Computer Science", "country": "Nigeria" },
+    "expected": {
+      "hardRequirementsMet": false,
+      "eligibilityMatch": "Not Eligible",
+      "reasonContains": "Austrian"
+    },
+    "note": "Hard nationality check alone should reject this — no LLM call needed. This exact case was confirmed against a real Gemini call on 2026-09-19: it returned llmInterpretation: null, proving the LLM genuinely wasn't invoked."
+  },
+  {
+    "label": "Austrian-only scholarship accepts an Austrian profile",
+    "listing": {
+      "title": "Erasmus+ - Grants for study mobility",
+      "deadline": "Not specified",
+      "eligibility": "Nationality: Austrian\nStudy experience required: High school"
+    },
+    "profile": { "educationLevel": "PhD", "fieldOfStudy": "Computer Science", "country": "Austria" },
+    "stubLlmResponse": {
+      "hasUnresolvedCriteria": false,
+      "missingOrUnclear": [],
+      "reasoning": "No ambiguous criteria beyond the hard requirements already checked."
+    },
+    "expected": {
+      "hardRequirementsMet": true
+    },
+    "note": "Same listing, different nationality — confirms the check isn't hardcoded to always reject, it's a real comparison."
+  },
+  {
+    "label": "PhD-only scholarship rejects a Bachelors profile",
+    "listing": {
+      "title": "Synthetic: PhD-only Research Grant",
+      "deadline": "Not specified",
+      "eligibility": "Study experience required: PhD\nNationality: Any"
+    },
+    "profile": { "educationLevel": "Bachelors", "fieldOfStudy": "Computer Science", "country": "Nigeria" },
+    "expected": {
+      "hardRequirementsMet": false,
+      "eligibilityMatch": "Not Eligible",
+      "reasonContains": "PhD level or above"
+    },
+    "note": "Education-level check alone should reject this — no LLM call needed."
+  },
+  {
+    "label": "Expired deadline rejects regardless of everything else",
+    "listing": {
+      "title": "Synthetic: Long-Expired Scholarship",
+      "deadline": "01 Jan 2020",
+      "eligibility": "Nationality: Any. Study experience required: High school."
+    },
+    "profile": { "educationLevel": "PhD", "fieldOfStudy": "Computer Science", "country": "Nigeria" },
+    "expected": {
+      "hardRequirementsMet": false,
+      "eligibilityMatch": "Not Eligible",
+      "reasonContains": "Deadline has passed"
+    },
+    "note": "Deadline check should fire even though nationality/education would otherwise pass — hard checks are independent, any one failing is enough."
+  },
+  {
+    "label": "No eligibility text at all short-circuits to Eligible",
+    "listing": {
+      "title": "Fulbright U.S. Student Program",
+      "deadline": "07 Oct 2026",
+      "eligibility": ""
+    },
+    "profile": { "educationLevel": "PhD", "fieldOfStudy": "Computer Science", "country": "Nigeria" },
+    "expected": {
+      "hardRequirementsMet": true,
+      "eligibilityMatch": "Eligible"
+    },
+    "note": "Real listing (Fulbright) with genuinely empty scraped eligibility text — should not be penalized for thin data, and should not call the LLM with nothing to interpret."
+  },
+  {
+    "label": "Ambiguous preference criteria, LLM says unresolved -> Partial",
+    "listing": {
+      "title": "Synthetic: Research Preference Scholarship",
+      "deadline": "Not specified",
+      "eligibility": "Nationality: Any. Preference given to applicants with demonstrated research experience."
+    },
+    "profile": { "educationLevel": "PhD", "fieldOfStudy": "Computer Science", "country": "Nigeria" },
+    "stubLlmResponse": {
+      "hasUnresolvedCriteria": true,
+      "missingOrUnclear": ["Research experience is preferred but not confirmed in the profile"],
+      "reasoning": "The listing prefers research experience, which the profile does not confirm."
+    },
+    "expected": {
+      "hardRequirementsMet": true,
+      "eligibilityMatch": "Partial"
+    },
+    "note": "Hard checks pass, so this exercises the LLM-interpretation path. Uses a stubbed response (not a live call) to verify our code correctly turns hasUnresolvedCriteria:true into Partial without needing to spend a real API call for every eval run."
+  },
+  {
+    "label": "Clear criteria, LLM says nothing unresolved -> Eligible",
+    "listing": {
+      "title": "$1,500 Annual Video Contest Scholarship",
+      "deadline": "31 Oct 2026",
+      "eligibility": "Applicants must record an original video and share it on social media. No academic requirements."
+    },
+    "profile": { "educationLevel": "Bachelors", "fieldOfStudy": "Computer Science", "country": "Nigeria" },
+    "stubLlmResponse": {
+      "hasUnresolvedCriteria": false,
+      "missingOrUnclear": [],
+      "reasoning": "The scholarship only requires clear, actionable social media tasks with no ambiguous preferences."
+    },
+    "expected": {
+      "hardRequirementsMet": true,
+      "eligibilityMatch": "Eligible"
+    },
+    "note": "Real listing text. This exact stub response was actually returned by Gemini for this exact listing on 2026-09-19 — kept here verbatim as a regression fixture, not invented."
+  }
+]

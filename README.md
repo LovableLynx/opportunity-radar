@@ -76,12 +76,12 @@ verifying logic changes before spending a real call to confirm end to end.
       search API saga" below for why this isn't Google Custom Search, which
       was the original plan.
 - [ ] Phase 4 — second source (Opportunity Desk) + frontend, stretch goals
-- [x] Phase 5 (eval set only, demo script still to do) — 10 real scholarships
-      (Fulbright, Erasmus+, Chinese Government Scholarship, etc., pulled from
-      an actual scrape) plus 4 labeled synthetic adversarial cases in
-      `eval/`. `npm run eval` checks all 14 against the trust-scoring rule:
-      currently 10/10 real listings correctly score Low Risk (no false
-      positives) and 4/4 synthetic cases score exactly as designed.
+- [x] Phase 5 (eval set only, demo script still to do) — trust scoring:
+      `npm run eval:trust`, 10 real scholarships (Fulbright, Erasmus+, etc.)
+      plus 4 labeled synthetic adversarial cases, 14/14 passing. Eligibility
+      matching: `npm run eval:match`, 7 cases covering hard-requirement
+      rejections, empty-eligibility-text handling, and stubbed
+      LLM-interpretation responses, 7/7 passing.
 
 We're building and testing one phase at a time — don't start the next one
 until the current one actually runs and the output looks right.
@@ -101,12 +101,24 @@ false positives), a single weak signal alone (checks the Some-Concerns
 threshold doesn't over-trigger), and one that only the search-evidence
 signals should catch.
 
-`eval/run-eval.js` (`npm run eval`) runs `scoreListing` from `src/trust.js`
-against all 14 and reports pass/fail against the documented expectations.
-This only exercises the deterministic trust-scoring logic, not the full
-pipeline (scraping, LLM matching, relevance filtering) — those need live API
-access to test, which is exactly why this eval set is useful on its own: it
-verifies the scoring rule stays correct without touching Gemini's quota.
+`eval/run-eval.js` (`npm run eval:trust`) runs `scoreListing` from
+`src/trust.js` against all 14 and reports pass/fail against the documented
+expectations. This only exercises the deterministic trust-scoring logic, not
+the full pipeline (scraping, LLM matching, relevance filtering) — those need
+live API access to test, which is exactly why this eval set is useful on its
+own: it verifies the scoring rule stays correct without touching Gemini's
+quota.
+
+`eval/match-cases.json` + `eval/run-match-eval.js` (`npm run eval:match`) do
+the same for eligibility matching. Cases where hard requirements fail run
+fully deterministically, same as the real pipeline (the LLM genuinely isn't
+called — one case is a fixture of an actual confirmed run from 2026-09-19
+where `llmInterpretation` came back `null`). Cases that need LLM
+interpretation use a stubbed response instead of a live call, some of them
+verbatim real responses Gemini returned during testing, so this checks that
+our code correctly turns an LLM judgment into the right `eligibilityMatch`
+value without needing to spend a real call on every eval run. 7/7 currently
+pass.
 
 ## The trust-scoring search API saga
 

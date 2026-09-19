@@ -76,10 +76,37 @@ verifying logic changes before spending a real call to confirm end to end.
       search API saga" below for why this isn't Google Custom Search, which
       was the original plan.
 - [ ] Phase 4 — second source (Opportunity Desk) + frontend, stretch goals
-- [ ] Phase 5 — eval set (real + adversarial listings) and demo script
+- [x] Phase 5 (eval set only, demo script still to do) — 10 real scholarships
+      (Fulbright, Erasmus+, Chinese Government Scholarship, etc., pulled from
+      an actual scrape) plus 4 labeled synthetic adversarial cases in
+      `eval/`. `npm run eval` checks all 14 against the trust-scoring rule:
+      currently 10/10 real listings correctly score Low Risk (no false
+      positives) and 4/4 synthetic cases score exactly as designed.
 
 We're building and testing one phase at a time — don't start the next one
 until the current one actually runs and the output looks right.
+
+## The eval set (`eval/`)
+
+`eval/real-listings.json` — 10 real scholarships pulled from an actual
+PhDportal scrape (not invented), each with a short `expectedNote` explaining
+why it's a useful test case (hard nationality restriction, missing
+eligibility text, non-date deadline text, etc.).
+
+`eval/synthetic-listings.json` — 4 constructed test cases, each clearly
+titled `SYNTHETIC TEST CASE:` so they're never mistaken for something
+actually discovered live. They isolate specific things: all three
+text-pattern red flags at once, a deliberately clean listing (checks for
+false positives), a single weak signal alone (checks the Some-Concerns
+threshold doesn't over-trigger), and one that only the search-evidence
+signals should catch.
+
+`eval/run-eval.js` (`npm run eval`) runs `scoreListing` from `src/trust.js`
+against all 14 and reports pass/fail against the documented expectations.
+This only exercises the deterministic trust-scoring logic, not the full
+pipeline (scraping, LLM matching, relevance filtering) — those need live API
+access to test, which is exactly why this eval set is useful on its own: it
+verifies the scoring rule stays correct without touching Gemini's quota.
 
 ## The trust-scoring search API saga
 

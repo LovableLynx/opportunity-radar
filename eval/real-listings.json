@@ -1,0 +1,72 @@
+[
+  {
+    "title": "Erasmus+ - Grants for study mobility",
+    "deadline": "Not specified",
+    "description": "As an agency of the Republic of Austria, OeAD offers grants for full-time study abroad within the Erasmus+ programme.",
+    "eligibility": "Eligibility Criteria:\n- Erasmus+ provides grants for full-time studies abroad (funded by EU and national funds of the ministries)\n- Nationality: Austrian\n- Study experience required: High school",
+    "expectedNote": "Real, well-documented EU programme. Has a hard nationality restriction (Austrian) - correctly rejects non-Austrian profiles on the deterministic check, without needing an LLM call."
+  },
+  {
+    "title": "Fulbright U.S. Student Program",
+    "deadline": "07 Oct 2026",
+    "description": "Grant provided by an independent provider offering various benefits.",
+    "eligibility": "",
+    "expectedNote": "Extremely well-known, legitimate US State Department programme. No eligibility text scraped from the summary page - a good case for testing what happens with missing eligibility data (should not be penalized as suspicious just because text is thin)."
+  },
+  {
+    "title": "China Scholarship Council (CSC) Scholarship",
+    "deadline": "Anytime",
+    "description": "Grant provided by a university offering various benefits.",
+    "eligibility": "Merit-based",
+    "expectedNote": "Real, large-scale Chinese government scholarship programme. Deadline says 'Anytime' - tests the deadline parser's handling of non-date deadline text."
+  },
+  {
+    "title": "Australia Awards Pacific Scholarships",
+    "deadline": "Not specified",
+    "description": "Grant provided by an independent provider offering various benefits.",
+    "eligibility": "Merit-based",
+    "expectedNote": "Real Australian government programme, but geographically restricted to Pacific nations in practice even though scraped eligibility text just says 'Merit-based' - a case where our matching would say Eligible/Partial but a human would know better. Worth discussing as a known gap: our matching is only as good as what's actually in the scraped text."
+  },
+  {
+    "title": "John Monash Scholarships",
+    "deadline": "30 Jun 2027",
+    "description": "Grant provided by a university offering 94,967,323 NGN.",
+    "eligibility": "Merit-based",
+    "expectedNote": "Real, prestigious Australian scholarship (General Sir John Monash Foundation). Large funding amount correctly converted to NGN by the extraction step."
+  },
+  {
+    "title": "Belgian American Educational Foundation (BAEF)",
+    "deadline": "31 Oct 2026",
+    "description": "Grant provided by an independent provider offering 95,884,563 NGN.",
+    "eligibility": "",
+    "expectedNote": "Real, long-established foundation (est. 1920). Deadline is concrete and in the future - should pass the deadline check cleanly."
+  },
+  {
+    "title": "$1,500 Annual Video Contest Scholarship",
+    "deadline": "31 Oct 2026",
+    "description": "The $1,500 Annual Video Contest Scholarship from IvyPanda requires applicants to record an original video, upload it, subscribe to IvyPanda's YouTube channels, and share the contest post on social media.",
+    "eligibility": "",
+    "expectedNote": "Real (IvyPanda, an established essay/scholarship-content company), but a good test for the trust layer: requires specific promotional actions (subscribe, share) which is a common pattern in genuine marketing-driven scholarships, distinct from a scam's upfront-payment pattern. Should NOT trigger the upfront-payment signal, since no payment is requested."
+  },
+  {
+    "title": "Chinese Government Scholarship - Type A - Bilateral Program",
+    "deadline": "Not specified",
+    "description": "Grant provided by a university offering various benefits.",
+    "eligibility": "",
+    "expectedNote": "Real, major government-to-government scholarship programme."
+  },
+  {
+    "title": "Merit Scholarships",
+    "deadline": "01 Nov 2026",
+    "description": "Grant provided by a university offering 26,634,601 NGN.",
+    "eligibility": "Merit-based",
+    "expectedNote": "Generic university-provided merit scholarship - real but with minimal distinguishing detail, a common shape for legitimate but unremarkable listings."
+  },
+  {
+    "title": "Francesca Norris Memorial Scholarship",
+    "deadline": "01 Nov 2026",
+    "description": "Grant provided by an independent provider offering various benefits.",
+    "eligibility": "Merit-based",
+    "expectedNote": "A smaller, named memorial scholarship - a good test case for the trust layer's 'no independent web presence' and 'no secondary source' signals, since small memorial scholarships are real but often have thin web coverage. Should not be flagged High Risk purely for being obscure."
+  }
+]

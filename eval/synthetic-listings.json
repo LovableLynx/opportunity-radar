@@ -1,0 +1,38 @@
+[
+  {
+    "title": "SYNTHETIC TEST CASE: Global Excellence Grant 2026",
+    "deadline": "31 Dec 2026",
+    "description": "Congratulations! You have been pre-selected for our fully-funded Global Excellence Grant. Act now — only 3 slots remaining! To secure your spot, send a refundable processing fee of $150 via Western Union within 24 hours.",
+    "eligibility": "Open to everyone, no requirements needed.",
+    "expectedSignals": ["upfrontPayment", "extremeUrgency", "vagueEligibility"],
+    "expectedRisk": "High Risk",
+    "note": "Combines all three text-pattern red flags deliberately: upfront payment via a hard-to-trace method, artificial urgency, and no real eligibility criteria. This is the clearest, most textbook scam pattern - should score High Risk with all three signals present in trustEvidence."
+  },
+  {
+    "title": "SYNTHETIC TEST CASE: Quiet Achievers Bursary",
+    "deadline": "15 Nov 2026",
+    "description": "A small, real-sounding bursary for undergraduate students. No red-flag language of any kind - just a description of what the bursary supports.",
+    "eligibility": "Applicants must be enrolled full-time in an undergraduate programme and submit a 500-word personal statement.",
+    "expectedSignals": [],
+    "expectedRisk": "Low Risk",
+    "note": "A synthetic case designed to look completely legitimate - no upfront payment, no urgency, specific and reasonable eligibility criteria. This tests that the trust layer doesn't produce false positives on a clean, boring, realistic listing. If this scores anything above Low Risk, that's a bug worth investigating."
+  },
+  {
+    "title": "SYNTHETIC TEST CASE: Limited-Time Scholar Award",
+    "deadline": "20 Oct 2026",
+    "description": "Apply immediately or lose this opportunity forever! Limited spots available this week only.",
+    "eligibility": "Nationality: Any. Field of study: Any. GPA: minimum 3.0.",
+    "expectedSignals": ["extremeUrgency"],
+    "expectedRisk": "Low Risk",
+    "note": "Isolates the urgency signal alone, with otherwise reasonable, specific eligibility criteria and no payment request. Tests that a single weak signal (weight 1) correctly stays below the Some Concerns threshold (2) rather than over-triggering on one red flag alone - matches the calibration decision documented in trust.js."
+  },
+  {
+    "title": "SYNTHETIC TEST CASE: Phantom Foundation Award",
+    "deadline": "Not specified",
+    "description": "An award from an organization with no verifiable presence anywhere online, no website, no social media, no news coverage. This test case checks the search-evidence-dependent signals specifically.",
+    "eligibility": "Open to everyone, no experience necessary.",
+    "expectedSignals": ["vagueEligibility", "noIndependentPresence", "noSecondarySource"],
+    "expectedRisk": "High Risk",
+    "note": "This one specifically exercises the search-evidence path (src/search.js) rather than only the text-pattern checks - since 'Phantom Foundation Award' should genuinely return no relevant results from DuckDuckGo (it doesn't exist), this is a real test of whether independentResultsFound/secondarySourceFound correctly come back false rather than accidentally keyword-matching unrelated pages."
+  }
+]

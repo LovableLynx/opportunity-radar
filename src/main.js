@@ -12,34 +12,47 @@ const { educationLevel = '', fieldOfStudy = '', country = '', fundingNeeded = tr
 const profile = { educationLevel, fieldOfStudy, country, fundingNeeded, gpaOrGrade };
 
 const client = await Actor.newClient();
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
-// This Gemini key's free tier caps at 5 requests/minute (not just a daily cap),
-// so we pace every call at least 13 seconds apart regardless of retries — cheap
-// insurance against bursting past the limit when scraping, enrichment, and
-// matching calls land close together.
-const MIN_MS_BETWEEN_CALLS = 13000;
-let lastCallAt = 0;
+// This Gemini free tier caps at 5 requests/minute AND 20 requests/day PER
+// KEY. Relevance-filtering search results added enough extra calls to run
+// past a single key's daily quota, so GOOGLE_API_KEY_SEARCH is optional: set
+// it to a second key to give search-evidence filtering its own separate
+// daily allowance instead of competing with scraping/matching for the same
+// one. If unset, everything just shares GOOGLE_API_KEY as before.
+function makeGenerateContentWithRetry(apiKey) {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
-async function generateContentWithRetry(prompt, retries = 4) {
-    const waitFor = lastCallAt + MIN_MS_BETWEEN_CALLS - Date.now();
-    if (waitFor > 0) await new Promise((resolve) => setTimeout(resolve, waitFor));
-    lastCallAt = Date.now();
+    const MIN_MS_BETWEEN_CALLS = 13000;
+    let lastCallAt = 0;
 
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            return await model.generateContent(prompt);
-        } catch (err) {
-            const isRetryable = err.status === 503 || err.status === 429;
-            if (!isRetryable || attempt === retries) throw err;
-            const delayMs = 15000 * attempt; // rate-limit errors need real recovery time, not a quick backoff
-            console.log(`Gemini call failed (${err.status}), retrying in ${delayMs}ms (attempt ${attempt}/${retries})`);
-            await new Promise((resolve) => setTimeout(resolve, delayMs));
-            lastCallAt = Date.now();
+    return async function generateContentWithRetry(prompt, retries = 4) {
+        const waitFor = lastCallAt + MIN_MS_BETWEEN_CALLS - Date.now();
+        if (waitFor > 0) await new Promise((resolve) => setTimeout(resolve, waitFor));
+        lastCallAt = Date.now();
+
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                return await model.generateContent(prompt);
+            } catch (err) {
+                const isRetryable = err.status === 503 || err.status === 429;
+                if (!isRetryable || attempt === retries) throw err;
+                const delayMs = 15000 * attempt; // rate-limit errors need real recovery time, not a quick backoff
+                console.log(`Gemini call failed (${err.status}), retrying in ${delayMs}ms (attempt ${attempt}/${retries})`);
+                await new Promise((resolve) => setTimeout(resolve, delayMs));
+                lastCallAt = Date.now();
+            }
         }
-    }
+    };
 }
+
+const generateContentWithRetry = makeGenerateContentWithRetry(process.env.GOOGLE_API_KEY);
+
+// Falls back to the main key if no second key is set, so this works whether
+// or not GOOGLE_API_KEY_SEARCH is configured.
+const generateContentForSearch = process.env.GOOGLE_API_KEY_SEARCH
+    ? makeGenerateContentWithRetry(process.env.GOOGLE_API_KEY_SEARCH)
+    : generateContentWithRetry;
 
 const isTestRun = process.env.OPPORTUNITY_RADAR_TEST_MODE === '1';
 
@@ -60,12 +73,11 @@ for (const listing of listings) {
 
     // Search evidence is only worth fetching for listings a student could
     // actually pursue — no point checking the trust of something already
-    // ruled out on hard requirements. The DuckDuckGo fetch itself doesn't
-    // touch Gemini's quota, but relevance-filtering the results does (one
-    // more paced call per searched listing), so this adds real quota cost
-    // on top of matching — factor that into ENRICH_LIMIT/test-mode sizing.
+    // ruled out on hard requirements. Uses generateContentForSearch (a
+    // separate key, if configured) so relevance-filtering has its own quota
+    // instead of competing with scraping/matching for the same daily limit.
     const searchEvidence = match.hardRequirementsMet
-        ? await searchForListingEvidence(listing, { sourceHostname: 'phdportal.com', generateContentWithRetry })
+        ? await searchForListingEvidence(listing, { sourceHostname: 'phdportal.com', generateContentWithRetry: generateContentForSearch })
         : null;
     const trust = scoreListing(listing, searchEvidence);
 

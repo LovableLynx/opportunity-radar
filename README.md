@@ -113,6 +113,22 @@ are honest about *domains found*, not proof that those domains are actually
 about the listing in question. Worth being upfront about this limitation if
 it comes up in the demo — it's a real gap, not a solved problem.
 
+### The Claude alternative (`src/search-claude.js`)
+
+Claude's API has its own web_search tool ($10/1,000 searches), and it isn't
+gated behind a "new users" restriction the way Gemini's grounding or Google
+Custom Search are. It's also a real upgrade over DuckDuckGo's raw keyword
+matching, since Claude reasons over the search results before answering
+rather than us guessing relevance from bare domain names — closer to what we
+originally wanted from search grounding.
+
+It's written, unit tested (7 tests, `test/search-claude.test.js`, client
+mocked throughout), and matches `search.js`'s exact interface — swapping
+`main.js`'s import from `./search.js` to `./search-claude.js` is the whole
+migration. Not yet confirmed against a real key end to end; needs an
+`ANTHROPIC_API_KEY` with billing enabled to test. If it works cleanly, it's
+probably the better long-term choice over DuckDuckGo scraping.
+
 ## Who's doing what
 
 - **Oluwadarasimi** — Actor/backend: scraping, matching logic, trust scoring,

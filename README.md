@@ -27,10 +27,14 @@ the group if you don't have these yet.
 
 Heads up on the Gemini free tier: it's capped at 5 requests/minute AND 20
 requests/day per key. Our pipeline paces calls at least 13 seconds apart to
-respect the per-minute limit, but the daily cap is real — if you're testing
-and hit a 429 quota error, that key is done for the day. Set
+respect the per-minute limit, but the daily cap is real and does the math for
+you whether you like it or not — one run costs roughly `1 + ENRICH_LIMIT +
+(number of listings matched)` calls, so a full 20-listing run with
+`ENRICH_LIMIT=20` needs ~41 calls, which cannot fit in a single day on this
+tier no matter how you space them out. `ENRICH_LIMIT` in `src/scrape.js` is
+set to 5 for this reason — comfortably fits one full run per key per day. Set
 `OPPORTUNITY_RADAR_TEST_MODE=1` as an env var to cap runs to 3 listings
-instead of 20, which uses far fewer calls per test.
+total for even cheaper iteration while testing logic changes.
 
 ## Running it locally
 
@@ -59,11 +63,15 @@ logic changes before spending a real API call to confirm end to end.
       (needed to get past its bot detection) + Gemini extraction, including
       following each listing's detail page for real eligibility text
 - [x] Phase 2 — eligibility matching: deterministic checks (deadline,
-      nationality, education level) verified with local unit tests; LLM
-      interpretation of ambiguous criteria written but not yet confirmed
-      against a real Gemini call end to end (blocked by free-tier quota,
-      not a known bug)
-- [ ] Phase 3 — trust/risk scoring, backed by Google Custom Search evidence
+      nationality, education level) verified with local unit tests, and
+      confirmed end to end against a real Gemini call — a real Nigerian
+      profile correctly got rejected from an Austrian-only scholarship with
+      no LLM call needed, and passed listings got sensible LLM reasoning
+      text back. Also confirmed the matching step holds at full scale (all
+      20 scraped listings), not just on a small test batch.
+- [x] Phase 3 (scoring rule only) — trust-scoring weights/thresholds written
+      and unit tested (`src/trust.js`, 15 tests passing); the Google Custom
+      Search integration that feeds it real evidence isn't wired in yet
 - [ ] Phase 4 — second source (Opportunity Desk) + frontend, stretch goals
 - [ ] Phase 5 — eval set (real + adversarial listings) and demo script
 

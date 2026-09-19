@@ -6,9 +6,12 @@
 // returned text and pull out structured listings, instead of guessing CSS
 // selectors against a page we can't reliably render ourselves.
 const START_URL = 'https://www.phdportal.com/search/scholarships/phd';
-// Kept small: this Gemini key's free tier is 5 requests/minute, and every
-// enriched listing costs one enrichment call plus one later matching call.
-const ENRICH_LIMIT = 3;
+// Every enriched listing costs one enrichment call plus one later matching
+// call against the LLM. This free-tier key allows 20 requests/day total, so
+// keeping this at 5 leaves headroom for the 1 extraction call, 5 enrichment
+// calls, and 15 summary-only matching calls (20 total) in a single run,
+// without needing to touch billing.
+const ENRICH_LIMIT = 5;
 
 export async function scrapeListings({ client, generateContentWithRetry, actorSetValue, listingLimit }) {
     const contentCrawlerRun = await client.actor('apify/website-content-crawler').call({

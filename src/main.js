@@ -60,10 +60,12 @@ for (const listing of listings) {
 
     // Search evidence is only worth fetching for listings a student could
     // actually pursue — no point checking the trust of something already
-    // ruled out on hard requirements. This hits DuckDuckGo directly, not
-    // Gemini, so it doesn't touch the pipeline's own rate limiting or quota.
+    // ruled out on hard requirements. The DuckDuckGo fetch itself doesn't
+    // touch Gemini's quota, but relevance-filtering the results does (one
+    // more paced call per searched listing), so this adds real quota cost
+    // on top of matching — factor that into ENRICH_LIMIT/test-mode sizing.
     const searchEvidence = match.hardRequirementsMet
-        ? await searchForListingEvidence(listing, { sourceHostname: 'phdportal.com' })
+        ? await searchForListingEvidence(listing, { sourceHostname: 'phdportal.com', generateContentWithRetry })
         : null;
     const trust = scoreListing(listing, searchEvidence);
 

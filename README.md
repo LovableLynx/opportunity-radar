@@ -21,9 +21,9 @@ npm install
 cp .env.example .env   # fill in your own keys, never commit .env
 ```
 
-You'll need your own Gemini API key (Google AI Studio) and, later, Google
-Custom Search credentials (API key + Search Engine ID) for phase 3 — ask in
-the group if you don't have these yet.
+You'll need your own Gemini API key (Google AI Studio) — ask in the group if
+you don't have one yet. Trust scoring's web-search evidence doesn't need any
+credentials at all (see below).
 
 Heads up on the Gemini free tier: it's capped at 5 requests/minute AND 20
 requests/day per key. Our pipeline paces calls at least 13 seconds apart to
@@ -69,14 +69,48 @@ logic changes before spending a real API call to confirm end to end.
       no LLM call needed, and passed listings got sensible LLM reasoning
       text back. Also confirmed the matching step holds at full scale (all
       20 scraped listings), not just on a small test batch.
-- [x] Phase 3 (scoring rule only) — trust-scoring weights/thresholds written
-      and unit tested (`src/trust.js`, 15 tests passing); the Google Custom
-      Search integration that feeds it real evidence isn't wired in yet
+- [x] Phase 3 — trust-scoring weights/thresholds written and unit tested
+      (`src/trust.js`), plus a real search-evidence integration
+      (`src/search.js`) wired into the pipeline. See "The trust scoring
+      search API saga" below for why this isn't Google Custom Search, which
+      was the original plan.
 - [ ] Phase 4 — second source (Opportunity Desk) + frontend, stretch goals
 - [ ] Phase 5 — eval set (real + adversarial listings) and demo script
 
 We're building and testing one phase at a time — don't start the next one
 until the current one actually runs and the output looks right.
+
+## The trust-scoring search API saga
+
+Worth reading if you're touching `src/search.js`, since the current approach
+isn't the one in the original build plan and the reasons matter.
+
+The plan called for Google Custom Search JSON API. Turns out it's now closed
+to new customers entirely — Google stopped accepting new sign-ups for it.
+Bing's Search API is fully retired as of mid-2025. Gemini's own free
+Google Search grounding only works on `gemini-2.5-flash` /
+`gemini-2.5-flash-lite`, and both of those are *also* closed to new users —
+confirmed directly against our own key with a real 404 ("no longer available
+to new users").
+
+What's actually wired in now: `src/search.js` queries DuckDuckGo's `lite`
+HTML endpoint directly (no key, no signup, no card). It works, but it's a
+soft target — DuckDuckGo's ToS discourages non-personal automated access,
+and a plain `fetch` call got tagged as bot traffic (`cc=botnet` in their own
+tracking pixel) during testing, though it still returned valid results. If
+this gets flaggier under real hackathon-day load, the fallback plan is
+routing the same request through Apify's Website Content Crawler (the same
+tool phase 1 uses to get past PhDportal's blocking), since that already has
+working anti-detection infrastructure.
+
+One more thing worth knowing: DuckDuckGo does keyword matching, not
+relevance-to-a-specific-listing matching. Searching for a completely made-up
+fake scholarship name still returned 10 results — generic "how to spot
+scholarship scams" articles that matched on keywords, not anything about the
+fake listing specifically. `independentResultsFound` and `secondarySourceFound`
+are honest about *domains found*, not proof that those domains are actually
+about the listing in question. Worth being upfront about this limitation if
+it comes up in the demo — it's a real gap, not a solved problem.
 
 ## Who's doing what
 

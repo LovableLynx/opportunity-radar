@@ -1,5 +1,5 @@
-// Unit tests for the Google Custom Search evidence logic in search.js.
-// fetch is mocked, so these never call the real API or spend quota.
+// Unit tests for the DuckDuckGo search evidence logic in search.js.
+// fetch is mocked throughout, so these never call the real endpoint.
 //
 // Run with: node --test test/search.test.js
 
@@ -7,32 +7,25 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { searchForListingEvidence } from '../src/search.js';
 
-function mockFetchReturning(items) {
-    return async () => ({
-        ok: true,
-        json: async () => ({ items }),
-    });
+function ddgResultLink(targetUrl) {
+    const encoded = encodeURIComponent(targetUrl);
+    return `<a rel="nofollow" href="//duckduckgo.com/l/?uddg=${encoded}&amp;rut=abc123" class='result-link'>`;
 }
 
-test('no config (missing key/engine ID) returns null instead of throwing', async () => {
-    const result = await searchForListingEvidence(
-        { title: 'Some Scholarship' },
-        { apiKey: null, searchEngineId: null, sourceHostname: 'phdportal.com' },
-    );
-
-    assert.equal(result, null);
-});
+function mockFetchReturningHtml(html) {
+    return async () => ({ ok: true, text: async () => html });
+}
 
 test('results only from the source site count as no independent presence', async () => {
     const originalFetch = global.fetch;
-    global.fetch = mockFetchReturning([
-        { link: 'https://www.phdportal.com/scholarships/123/foo.html' },
-        { link: 'https://phdportal.com/scholarships/456/bar.html' },
-    ]);
+    global.fetch = mockFetchReturningHtml(
+        ddgResultLink('https://www.phdportal.com/scholarships/123/foo.html') +
+        ddgResultLink('https://phdportal.com/scholarships/456/bar.html'),
+    );
 
     const result = await searchForListingEvidence(
         { title: 'Foo Scholarship' },
-        { apiKey: 'fake', searchEngineId: 'fake', sourceHostname: 'phdportal.com' },
+        { sourceHostname: 'phdportal.com' },
     );
 
     global.fetch = originalFetch;
@@ -42,14 +35,14 @@ test('results only from the source site count as no independent presence', async
 
 test('a result from a different domain counts as independent presence', async () => {
     const originalFetch = global.fetch;
-    global.fetch = mockFetchReturning([
-        { link: 'https://www.phdportal.com/scholarships/123/foo.html' },
-        { link: 'https://ec.europa.eu/erasmus-plus/foo' },
-    ]);
+    global.fetch = mockFetchReturningHtml(
+        ddgResultLink('https://www.phdportal.com/scholarships/123/foo.html') +
+        ddgResultLink('https://erasmus-plus.ec.europa.eu/programme-guide'),
+    );
 
     const result = await searchForListingEvidence(
         { title: 'Erasmus+ Grant' },
-        { apiKey: 'fake', searchEngineId: 'fake', sourceHostname: 'phdportal.com' },
+        { sourceHostname: 'phdportal.com' },
     );
 
     global.fetch = originalFetch;
@@ -60,11 +53,11 @@ test('a result from a different domain counts as independent presence', async ()
 
 test('zero results means no independent presence and no secondary source', async () => {
     const originalFetch = global.fetch;
-    global.fetch = mockFetchReturning([]);
+    global.fetch = mockFetchReturningHtml('<html><body>No results found.</body></html>');
 
     const result = await searchForListingEvidence(
         { title: 'Completely Unknown Grant' },
-        { apiKey: 'fake', searchEngineId: 'fake', sourceHostname: 'phdportal.com' },
+        { sourceHostname: 'phdportal.com' },
     );
 
     global.fetch = originalFetch;
@@ -73,17 +66,13 @@ test('zero results means no independent presence and no secondary source', async
     assert.equal(result.secondarySourceFound, false);
 });
 
-test('a non-ok API response returns null instead of crashing the run', async () => {
+test('a non-ok response returns null instead of crashing the run', async () => {
     const originalFetch = global.fetch;
-    global.fetch = async () => ({
-        ok: false,
-        status: 429,
-        text: async () => 'quota exceeded',
-    });
+    global.fetch = async () => ({ ok: false, status: 429 });
 
     const result = await searchForListingEvidence(
         { title: 'Any Scholarship' },
-        { apiKey: 'fake', searchEngineId: 'fake', sourceHostname: 'phdportal.com' },
+        { sourceHostname: 'phdportal.com' },
     );
 
     global.fetch = originalFetch;
@@ -97,7 +86,7 @@ test('a network error returns null instead of crashing the run', async () => {
 
     const result = await searchForListingEvidence(
         { title: 'Any Scholarship' },
-        { apiKey: 'fake', searchEngineId: 'fake', sourceHostname: 'phdportal.com' },
+        { sourceHostname: 'phdportal.com' },
     );
 
     global.fetch = originalFetch;
@@ -105,19 +94,37 @@ test('a network error returns null instead of crashing the run', async () => {
     assert.equal(result, null);
 });
 
-test('malformed result URLs are ignored rather than crashing', async () => {
+test('malformed or relative hrefs are ignored rather than crashing', async () => {
     const originalFetch = global.fetch;
-    global.fetch = mockFetchReturning([
-        { link: 'not-a-valid-url' },
-        { link: 'https://example.org/real-page' },
-    ]);
+    global.fetch = mockFetchReturningHtml(
+        `<a href="/relative/path" class='result-link'>` +
+        ddgResultLink('https://example.org/real-page'),
+    );
 
     const result = await searchForListingEvidence(
         { title: 'Some Grant' },
-        { apiKey: 'fake', searchEngineId: 'fake', sourceHostname: 'phdportal.com' },
+        { sourceHostname: 'phdportal.com' },
     );
 
     global.fetch = originalFetch;
 
     assert.equal(result.independentResultsFound, true);
+});
+
+test('multiple results from the same external domain still count as one domain, not two', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = mockFetchReturningHtml(
+        ddgResultLink('https://example.org/page-one') +
+        ddgResultLink('https://example.org/page-two'),
+    );
+
+    const result = await searchForListingEvidence(
+        { title: 'Some Grant' },
+        { sourceHostname: 'phdportal.com' },
+    );
+
+    global.fetch = originalFetch;
+
+    assert.equal(result.resultCount, 1);
+    assert.equal(result.secondarySourceFound, false); // only one distinct domain, even with two pages
 });

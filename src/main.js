@@ -55,20 +55,15 @@ const listings = await scrapeListings({
 
 console.log(`Matching and trust-scoring ${listings.length} listings against the student profile.`);
 
-const searchConfig = {
-    apiKey: process.env.GOOGLE_CSE_API_KEY,
-    searchEngineId: process.env.GOOGLE_CSE_ID,
-    sourceHostname: 'phdportal.com',
-};
-
 for (const listing of listings) {
     const match = await matchListing(listing, profile, generateContentWithRetry);
 
     // Search evidence is only worth fetching for listings a student could
-    // actually pursue — no point spending an API call checking the trust of
-    // something already ruled out on hard requirements.
+    // actually pursue — no point checking the trust of something already
+    // ruled out on hard requirements. This hits DuckDuckGo directly, not
+    // Gemini, so it doesn't touch the pipeline's own rate limiting or quota.
     const searchEvidence = match.hardRequirementsMet
-        ? await searchForListingEvidence(listing, searchConfig)
+        ? await searchForListingEvidence(listing, { sourceHostname: 'phdportal.com' })
         : null;
     const trust = scoreListing(listing, searchEvidence);
 

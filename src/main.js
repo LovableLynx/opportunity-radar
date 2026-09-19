@@ -2,6 +2,8 @@ import { Actor } from 'apify';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { scrapeListings } from './scrape.js';
 import { matchListing } from './match.js';
+import { searchForListingEvidence } from './search.js';
+import { scoreListing } from './trust.js';
 
 await Actor.init();
 
@@ -51,14 +53,29 @@ const listings = await scrapeListings({
     listingLimit: isTestRun ? 3 : undefined,
 });
 
-console.log(`Matching ${listings.length} listings against the student profile.`);
+console.log(`Matching and trust-scoring ${listings.length} listings against the student profile.`);
+
+const searchConfig = {
+    apiKey: process.env.GOOGLE_CSE_API_KEY,
+    searchEngineId: process.env.GOOGLE_CSE_ID,
+    sourceHostname: 'phdportal.com',
+};
 
 for (const listing of listings) {
     const match = await matchListing(listing, profile, generateContentWithRetry);
 
+    // Search evidence is only worth fetching for listings a student could
+    // actually pursue — no point spending an API call checking the trust of
+    // something already ruled out on hard requirements.
+    const searchEvidence = match.hardRequirementsMet
+        ? await searchForListingEvidence(listing, searchConfig)
+        : null;
+    const trust = scoreListing(listing, searchEvidence);
+
     await Actor.pushData({
         ...listing,
         ...match,
+        ...trust,
         scrapedFor: profile,
     });
 }

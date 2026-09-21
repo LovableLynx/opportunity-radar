@@ -75,7 +75,12 @@ verifying logic changes before spending a real call to confirm end to end.
       (`src/search.js`) wired into the pipeline. See "The trust scoring
       search API saga" below for why this isn't Google Custom Search, which
       was the original plan.
-- [ ] Phase 4 — second source (Opportunity Desk) + frontend, stretch goals
+- [x] Phase 4 (second source only, frontend still to do) — Opportunity Desk
+      wired in as a second scraping source, code done and unit tested
+      (`test/scrape.test.js`), but off by default (`ENABLE_OPPORTUNITY_DESK=1`
+      to turn it on). Unlike PhDportal, it's never been confirmed working
+      against our live pipeline, and it's Cloudflare-protected, so treat it
+      as untested until run for real.
 - [x] Phase 5 (eval set only, demo script still to do) — trust scoring:
       `npm run eval:trust`, 10 real scholarships (Fulbright, Erasmus+, etc.)
       plus 4 labeled synthetic adversarial cases, 14/14 passing. Eligibility

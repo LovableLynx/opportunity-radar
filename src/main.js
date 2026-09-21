@@ -79,6 +79,17 @@ if (input.compareListingA && input.compareListingB) {
 
     const isTestRun = process.env.OPPORTUNITY_RADAR_TEST_MODE === '1';
 
+    // Opportunity Desk is off by default: it's Cloudflare-protected, and
+    // unlike PhDportal (confirmed working live through Website Content
+    // Crawler), it's never actually been tested against our pipeline. Set
+    // ENABLE_OPPORTUNITY_DESK=1 once there's quota to spare for a real test.
+    // enrichLimitPerSource stays 5 total either way, split across whichever
+    // sources are active, so turning this on doesn't silently double the
+    // LLM call budget for a run.
+    const sourceKeys = process.env.ENABLE_OPPORTUNITY_DESK === '1'
+        ? ['phdportal', 'opportunitydesk']
+        : ['phdportal'];
+
     const listings = await scrapeListings({
         client,
         generateContentWithRetry,
@@ -87,6 +98,8 @@ if (input.compareListingA && input.compareListingB) {
         // free-tier daily quota (20 requests/day) on repeated test runs. Unset this
         // env var, or set it to 0, for a real full-scope run.
         listingLimit: isTestRun ? 3 : undefined,
+        sourceKeys,
+        enrichLimitPerSource: 5,
     });
 
     console.log(`Matching and trust-scoring ${listings.length} listings against the student profile.`);

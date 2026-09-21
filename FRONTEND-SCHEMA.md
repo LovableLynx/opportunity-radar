@@ -127,6 +127,27 @@ the key `DIGEST`, something like:
 Good for a headline summary at the top of the results page, before the
 per-listing list.
 
+## Cross-listing patterns (optional, batch-level)
+
+Also saved to the key-value store, under `CROSS_LISTING_PATTERNS`:
+
+```json
+{
+  "patterns": [
+    { "phrase": "processing fee of $50", "listingTitles": ["Scholarship A", "Scholarship C", "Scholarship E"] }
+  ],
+  "batchTooSmall": false
+}
+```
+
+This flags a suspicious phrase repeating across multiple, otherwise
+unrelated listings in the same run, a possible sign of a shared scam
+template. `patterns` is empty and `batchTooSmall` is `true` for a run with
+too few listings for repetition to mean anything. Doesn't affect any
+individual listing's own `trustRisk`, this is a separate warning worth
+surfacing above the results list if `patterns` isn't empty, something like
+"heads up, we found the same suspicious phrase in 3 listings this run".
+
 ## How to call it
 
 The Actor is deployed at `lovablelynx/opportunity-radar` on Apify. Calling

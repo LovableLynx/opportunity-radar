@@ -7,6 +7,7 @@ import { checkAlumniMentions } from './alumni-signal.js';
 import { scoreListing } from './trust.js';
 import { buildDigest } from './digest.js';
 import { urgencyFor } from './urgency.js';
+import { detectCrossListingPatterns } from './cross-listing-patterns.js';
 
 await Actor.init();
 
@@ -126,6 +127,20 @@ try {
     console.log(digest.summary);
 } catch (err) {
     console.log(`Could not build results digest: ${err.message}`);
+}
+
+// Cross-listing pattern detection is a pure, no-cost add-on: no API calls,
+// operates on results we already have. Only activates with enough volume
+// to make repetition meaningful, single-listing or small-batch runs are
+// unaffected. If it throws for any reason, log it and move on.
+try {
+    const crossListing = detectCrossListingPatterns(results);
+    await Actor.setValue('CROSS_LISTING_PATTERNS', crossListing);
+    if (crossListing.patterns.length > 0) {
+        console.log(`Found ${crossListing.patterns.length} phrase(s) repeating across multiple listings, possible shared template.`);
+    }
+} catch (err) {
+    console.log(`Could not run cross-listing pattern detection: ${err.message}`);
 }
 
 await Actor.exit();

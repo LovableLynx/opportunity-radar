@@ -143,5 +143,8 @@ export async function searchForListingEvidence(listing, { sourceHostname, genera
         resultCount: domains.size,
         candidatesFound: candidates.length,
         relevantAfterFiltering: relevant.length,
+        // Raw candidates exposed so other reasoning layers (alumni-signal.js)
+        // can reuse this one fetch instead of hitting DuckDuckGo again.
+        candidates,
     };
 }

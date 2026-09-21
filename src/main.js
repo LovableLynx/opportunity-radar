@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { scrapeListings } from './scrape.js';
 import { matchListing } from './match.js';
 import { searchForListingEvidence } from './search.js';
+import { checkAlumniMentions } from './alumni-signal.js';
 import { scoreListing } from './trust.js';
 import { buildDigest } from './digest.js';
 import { urgencyFor } from './urgency.js';
@@ -85,6 +86,15 @@ for (const listing of listings) {
         : null;
     const trust = scoreListing(listing, searchEvidence);
 
+    // Opt-in, off by default: costs one more paced Gemini call per searched
+    // listing on top of relevance filtering, which matters given how tight
+    // the free-tier daily quota already is. Set ENABLE_ALUMNI_SIGNAL=1 once
+    // quota allows testing it for real.
+    let alumniSignal = null;
+    if (process.env.ENABLE_ALUMNI_SIGNAL === '1' && searchEvidence?.candidates) {
+        alumniSignal = await checkAlumniMentions(listing, searchEvidence.candidates, generateContentForSearch);
+    }
+
     // Urgency is a pure add-on computed from the deadline we already
     // scraped. A failure here (unexpected deadline format) shouldn't drop
     // the listing, it just means urgency stays Unknown for this one.
@@ -95,7 +105,15 @@ for (const listing of listings) {
         console.log(`Could not compute urgency for "${listing.title}": ${err.message}`);
     }
 
-    const record = { ...listing, ...match, ...trust, ...urgencyInfo, scrapedFor: profile };
+    const record = {
+        ...listing,
+        ...match,
+        ...trust,
+        ...urgencyInfo,
+        alumniMentionsFound: alumniSignal?.alumniMentionsFound ?? null,
+        alumniEvidence: alumniSignal?.evidence ?? [],
+        scrapedFor: profile,
+    };
     results.push(record);
     await Actor.pushData(record);
 }

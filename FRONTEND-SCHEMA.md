@@ -77,6 +77,13 @@ found. This is a real example pulled from an actual run, not invented:
   never claim "verified" or "confirmed legitimate", the wording is
   deliberately hedged and the UI copy should match that tone rather than
   overstate certainty).
+- **`alumniMentionsFound`** is `true`, `false`, or `null`. `null` means this
+  check didn't run at all, it's off by default (see below), not that we
+  checked and found nothing. `alumniEvidence` is an array of short strings
+  when found. Nice as a small "past recipients found online" badge when
+  `true`, but this feature is currently disabled by default to save on API
+  quota, so expect `null` most of the time until `ENABLE_ALUMNI_SIGNAL=1`
+  is set on the Actor.
 - **`trustConfidence`** is one of `"Very low"`, `"Low"`, `"Medium"`, `"High"`.
   This is separate from `trustRisk` on purpose: two listings can both come
   back "Low Risk" for very different reasons, one because five independent

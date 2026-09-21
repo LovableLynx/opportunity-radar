@@ -17,7 +17,9 @@
 //                      real-world fit
 //   Not Eligible    - at least one hard requirement fails
 
-function parseDeadline(deadlineText) {
+// Exported so other modules (urgency.js) can reuse the same parsing rules
+// instead of re-implementing "what counts as a real deadline".
+export function parseDeadline(deadlineText) {
     if (!deadlineText || /not specified/i.test(deadlineText)) return null;
     const parsed = new Date(deadlineText);
     return Number.isNaN(parsed.getTime()) ? null : parsed;

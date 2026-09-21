@@ -74,6 +74,12 @@ found. This is a real example pulled from an actual run, not invented:
 - **`deadline`** is a string, not always a clean date, it can be
   "Not specified" or "Anytime" as scraped from the source site. Don't
   assume it always parses as a real date.
+- **`urgency`** is one of `"Closing soon"` (within 14 days), `"Upcoming"`
+  (15-90 days), `"Plenty of time"` (90+ days), `"Closed"` (deadline passed),
+  or `"Unknown"` (deadline couldn't be parsed, e.g. "Not specified").
+  `daysRemaining` is the number backing it, or `null` for Unknown. Good for
+  sorting the list or a small badge, "Unknown" and "Closed" listings
+  probably shouldn't sort to the top regardless of anything else.
 - **`description`** can be a few paragraphs long. Needs truncation or a
   "read more" pattern in the results view, not a fixed-height card that
   clips it silently.

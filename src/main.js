@@ -5,6 +5,7 @@ import { matchListing } from './match.js';
 import { searchForListingEvidence } from './search.js';
 import { scoreListing } from './trust.js';
 import { buildDigest } from './digest.js';
+import { urgencyFor } from './urgency.js';
 
 await Actor.init();
 
@@ -84,7 +85,17 @@ for (const listing of listings) {
         : null;
     const trust = scoreListing(listing, searchEvidence);
 
-    const record = { ...listing, ...match, ...trust, scrapedFor: profile };
+    // Urgency is a pure add-on computed from the deadline we already
+    // scraped. A failure here (unexpected deadline format) shouldn't drop
+    // the listing, it just means urgency stays Unknown for this one.
+    let urgencyInfo = { urgency: 'Unknown', daysRemaining: null };
+    try {
+        urgencyInfo = urgencyFor(listing.deadline);
+    } catch (err) {
+        console.log(`Could not compute urgency for "${listing.title}": ${err.message}`);
+    }
+
+    const record = { ...listing, ...match, ...trust, ...urgencyInfo, scrapedFor: profile };
     results.push(record);
     await Actor.pushData(record);
 }

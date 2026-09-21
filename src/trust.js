@@ -91,6 +91,30 @@ function checkNoSecondaryListing(searchEvidence) {
 }
 
 /**
+ * How much we actually had to go on when scoring this listing. Two listings
+ * can both land on "Low Risk" for very different reasons: one because five
+ * independent sources confirmed it, another because no search ran at all
+ * and nothing in the text tripped a red flag. Those aren't equally
+ * trustworthy verdicts, so this is tracked and reported separately rather
+ * than folded into trustRisk itself.
+ */
+function confidenceFor(listing, searchEvidence) {
+    const hasEligibilityText = Boolean(listing.eligibility);
+    const hasDescription = Boolean(listing.description);
+
+    if (!searchEvidence) {
+        // No web search ran at all (listing failed hard requirements, so we
+        // skip search entirely, or the search itself failed).
+        return hasEligibilityText || hasDescription ? 'Low' : 'Very low';
+    }
+
+    const resultCount = searchEvidence.resultCount ?? 0;
+    if (resultCount === 0) return 'Low';
+    if (resultCount === 1) return 'Medium';
+    return 'High';
+}
+
+/**
  * Computes a risk score and category from a listing plus optional search
  * evidence. searchEvidence is optional so this can be tested and used before
  * the Google Custom Search integration exists.
@@ -126,5 +150,6 @@ export function scoreListing(listing, searchEvidence = null) {
         trustRisk,
         trustScore: score,
         trustEvidence: evidence.length > 0 ? evidence : ['No risk signals detected based on available evidence'],
+        trustConfidence: confidenceFor(listing, searchEvidence),
     };
 }

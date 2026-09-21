@@ -71,6 +71,14 @@ found. This is a real example pulled from an actual run, not invented:
   never claim "verified" or "confirmed legitimate", the wording is
   deliberately hedged and the UI copy should match that tone rather than
   overstate certainty).
+- **`trustConfidence`** is one of `"Very low"`, `"Low"`, `"Medium"`, `"High"`.
+  This is separate from `trustRisk` on purpose: two listings can both come
+  back "Low Risk" for very different reasons, one because five independent
+  sources confirmed it's real, another because no search ran at all and
+  nothing in the text happened to trip a red flag. Worth showing this
+  distinction visually (maybe a smaller, secondary label near the risk
+  badge) so "Low Risk" doesn't read as "we're sure this is fine" when the
+  honest answer is "we don't have much to go on either way".
 - **`deadline`** is a string, not always a clean date, it can be
   "Not specified" or "Anytime" as scraped from the source site. Don't
   assume it always parses as a real date.

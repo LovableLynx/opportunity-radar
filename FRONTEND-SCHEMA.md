@@ -9,7 +9,7 @@ Source of truth: `.actor/input_schema.json`
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `educationLevel` | string, one of `Bachelors`, `Masters`, `PhD` | yes | Dropdown/select in the Apify UI. **Known gap:** the matching logic also supports `High school`, but it's not in this enum yet. If the design wants to include high schoolers, flag it and we'll add it to the schema, it's a one-line change. |
+| `educationLevel` | string, one of `High school`, `Bachelors`, `Masters`, `PhD` | yes | Dropdown/select in the Apify UI. |
 | `fieldOfStudy` | string, free text | yes | e.g. "Computer Science", "Public Health" |
 | `country` | string, free text | yes | Used for nationality-based eligibility checks |
 | `fundingNeeded` | boolean | no (defaults to `true`) | Checkbox |

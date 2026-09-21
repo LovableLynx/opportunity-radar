@@ -6,7 +6,7 @@
     "educationLevel": {
       "title": "Education level",
       "type": "string",
-      "enum": ["Bachelors", "Masters", "PhD"],
+      "enum": ["High school", "Bachelors", "Masters", "PhD"],
       "editor": "select",
       "description": "The user's current or target education level."
     },

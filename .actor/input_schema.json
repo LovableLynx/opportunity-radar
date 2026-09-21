@@ -35,6 +35,13 @@
       "editor": "textfield",
       "description": "e.g. 3.6/4.0 or Second Class Upper",
       "nullable": true
+    },
+    "cvText": {
+      "title": "CV content (optional)",
+      "type": "string",
+      "editor": "textarea",
+      "description": "Plain text of the student's CV. When provided, ambiguous eligibility criteria (e.g. 'research experience preferred') are checked against real CV content instead of left unconfirmed. Extract text from a PDF/DOCX before sending, this field expects plain text, not a file.",
+      "nullable": true
     }
   },
   "required": ["educationLevel", "fieldOfStudy", "country"]

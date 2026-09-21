@@ -14,6 +14,7 @@ Source of truth: `.actor/input_schema.json`
 | `country` | string, free text | yes | Used for nationality-based eligibility checks |
 | `fundingNeeded` | boolean | no (defaults to `true`) | Checkbox |
 | `gpaOrGrade` | string, free text | no | e.g. "3.6/4.0" or "Second Class Upper". Currently collected but not yet used by any matching check, that's a possible future feature, not a bug. |
+| `cvText` | string, free text | no | Plain text of the student's CV, not a file. If the frontend collects a PDF/DOCX, extract the text before sending it here. When present, ambiguous eligibility criteria get checked against real CV content instead of always coming back "unconfirmed". |
 
 Example valid input:
 
@@ -67,6 +68,12 @@ found. This is a real example pulled from an actual run, not invented:
   array for `Eligible` and `Not Eligible`, there's nothing actionable to
   suggest in either case. Good as a small checklist under the eligibility
   badge when the array isn't empty.
+- **`usedCvEvidence`** is `true` if a `cvText` was provided and actually
+  reached the eligibility check for this listing, `false` otherwise
+  (including when a CV was provided but this particular listing got rejected
+  on a hard requirement before the LLM step, or had no eligibility text to
+  check against). Worth showing something like "checked against your CV"
+  when `true`, so it's clear the richer answer came from real evidence.
 - **`trustRisk`** is one of `"Low Risk"`, `"Some Concerns"`, `"High Risk"`.
   This needs its own distinct visual treatment from `eligibilityMatch`,
   they're answering two different questions ("do I qualify" vs "can I

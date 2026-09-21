@@ -91,7 +91,12 @@ function runHardChecks(listing, profile) {
     return { hardRequirementsMet: failures.length === 0, failures };
 }
 
-export async function matchListing(listing, profile, generateContentWithRetry) {
+// cvText is optional. When provided, the LLM checks ambiguous criteria
+// against what's actually in the CV instead of just the profile fields, so
+// "research experience preferred" can become "confirmed, per your CV" or
+// "not found in your CV" instead of always "unconfirmed". Profile-only
+// input (no CV) works exactly as before, this is purely additive.
+export async function matchListing(listing, profile, generateContentWithRetry, cvText = null) {
     const { hardRequirementsMet, failures } = runHardChecks(listing, profile);
 
     if (!hardRequirementsMet) {
@@ -101,6 +106,7 @@ export async function matchListing(listing, profile, generateContentWithRetry) {
             missingRequirements: failures,
             llmInterpretation: null,
             actionSteps: [],
+            usedCvEvidence: false,
         };
     }
 
@@ -114,17 +120,22 @@ export async function matchListing(listing, profile, generateContentWithRetry) {
             missingRequirements: [],
             llmInterpretation: 'No eligibility text available to check beyond hard requirements.',
             actionSteps: [],
+            usedCvEvidence: false,
         };
     }
 
-    const prompt = `A student has this profile: education level = ${profile.educationLevel}, field of study = ${profile.fieldOfStudy}, country = ${profile.country}, needs funding = ${profile.fundingNeeded}, grade = ${profile.gpaOrGrade ?? 'not provided'}.
+    const cvSection = cvText
+        ? `\n\nThe student has also provided their CV. Use it as real evidence when checking ambiguous criteria below, actual evidence beats an assumption. For example, if the listing prefers "research experience" and the CV lists a publication or a supervised project, that criterion is resolved, not just "unconfirmed".\n\nCV content:\n"""\n${cvText}\n"""`
+        : '';
+
+    const prompt = `A student has this profile: education level = ${profile.educationLevel}, field of study = ${profile.fieldOfStudy}, country = ${profile.country}, needs funding = ${profile.fundingNeeded}, grade = ${profile.gpaOrGrade ?? 'not provided'}.${cvSection}
 
 This scholarship's eligibility text is:
 """
 ${eligibilityText}
 """
 
-The student already passes every hard, objectively-checkable requirement (nationality, education level, deadline). Your job is ONLY to look at any remaining ambiguous or preference-based criteria in the text above (e.g. "preference given to X", required activities, field-of-study fit) and decide if anything there would likely block or weaken this student's application.
+The student already passes every hard, objectively-checkable requirement (nationality, education level, deadline). Your job is ONLY to look at any remaining ambiguous or preference-based criteria in the text above (e.g. "preference given to X", required activities, field-of-study fit) and decide if anything there would likely block or weaken this student's application${cvText ? ', checking the CV above for real evidence before calling something unconfirmed' : ''}.
 
 Return ONLY a JSON object with:
 - "hasUnresolvedCriteria": true or false
@@ -150,5 +161,6 @@ Return ONLY a JSON object with:
         missingRequirements: llmResult.missingOrUnclear ?? [],
         llmInterpretation: llmResult.reasoning ?? null,
         actionSteps: llmResult.actionSteps ?? [],
+        usedCvEvidence: Boolean(cvText),
     };
 }

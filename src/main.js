@@ -11,7 +11,7 @@ import { urgencyFor } from './urgency.js';
 await Actor.init();
 
 const input = (await Actor.getInput()) ?? {};
-const { educationLevel = '', fieldOfStudy = '', country = '', fundingNeeded = true, gpaOrGrade = null } = input;
+const { educationLevel = '', fieldOfStudy = '', country = '', fundingNeeded = true, gpaOrGrade = null, cvText = null } = input;
 const profile = { educationLevel, fieldOfStudy, country, fundingNeeded, gpaOrGrade };
 
 const client = await Actor.newClient();
@@ -74,7 +74,7 @@ console.log(`Matching and trust-scoring ${listings.length} listings against the 
 const results = [];
 
 for (const listing of listings) {
-    const match = await matchListing(listing, profile, generateContentWithRetry);
+    const match = await matchListing(listing, profile, generateContentWithRetry, cvText);
 
     // Search evidence is only worth fetching for listings a student could
     // actually pursue — no point checking the trust of something already

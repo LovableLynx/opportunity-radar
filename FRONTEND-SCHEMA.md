@@ -155,6 +155,42 @@ This is entirely invisible from the frontend's side, it just means
 `trustRisk` gets a little sharper over time as the Actor sees more scam
 listings, nothing new to render for this part.
 
+## Compare mode (separate input shape entirely)
+
+If a student wants a head-to-head between two opportunities they've
+already seen in their results, this is a completely different call, not
+part of the normal profile-based run.
+
+Input:
+
+```json
+{
+  "compareListingA": { "title": "...", "eligibilityMatch": "Eligible", "trustRisk": "Low Risk", "urgency": "Upcoming" },
+  "compareListingB": { "title": "...", "eligibilityMatch": "Partial", "trustRisk": "Some Concerns", "urgency": "Closing soon" }
+}
+```
+
+Just pass in two of the listing records the Actor already returned from a
+normal run, whole objects work fine even though only `title`,
+`eligibilityMatch`, `trustRisk`, and `urgency` are actually used.
+
+Output:
+
+```json
+{
+  "listingATitle": "...",
+  "listingBTitle": "...",
+  "comparison": { "eligibility": "a", "urgency": "b", "trust": "tie" },
+  "verdict": "The first opportunity is the better eligibility match, but check the trust comparison too before deciding."
+}
+```
+
+`comparison` values are `"a"`, `"b"`, or `"tie"`, telling you which listing
+came out ahead on each dimension. `verdict` is a ready-to-show sentence,
+deliberately hedged when the two dimensions disagree (better eligibility
+but worse trust, for example), it never picks a false clear winner. No
+scraping or LLM calls happen in this mode, it's instant.
+
 ## How to call it
 
 The Actor is deployed at `lovablelynx/opportunity-radar` on Apify. Calling

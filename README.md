@@ -10,9 +10,14 @@ real scholarship/grant/admission listings and tells them what they're eligible
 for and what's missing, and it separately checks each listing for scam red
 flags using real evidence (not just a vibe).
 
-The full phase-by-phase build plan — including why the eligibility and trust
-logic are split the way they are — is in `Opportunity-Radar-Build-Plan.pdf`
-one folder up. Worth reading before touching Phase 2/3 code.
+Three PDFs live in this repo, each for a different purpose:
+
+- `Opportunity-Radar-Status-Update.pdf` — **start here.** Where the build
+  actually stands right now, what's confirmed working vs. still untested.
+- `Opportunity-Radar-Build-Plan.pdf` — the original phase-by-phase plan,
+  including why the eligibility and trust logic are split the way they are.
+  Worth reading before touching Phase 2/3 code.
+- `Opportunity-Radar-Team-Brief.pdf` — the original team/role brief.
 
 ## Setup
 

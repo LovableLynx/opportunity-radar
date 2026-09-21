@@ -148,6 +148,13 @@ individual listing's own `trustRisk`, this is a separate warning worth
 surfacing above the results list if `patterns` isn't empty, something like
 "heads up, we found the same suspicious phrase in 3 listings this run".
 
+Phrases found this way also get saved into a growing scam-pattern library
+(Apify key-value store, capped at 100 entries), so future runs check
+against everything learned so far on top of the fixed starting patterns.
+This is entirely invisible from the frontend's side, it just means
+`trustRisk` gets a little sharper over time as the Actor sees more scam
+listings, nothing new to render for this part.
+
 ## How to call it
 
 The Actor is deployed at `lovablelynx/opportunity-radar` on Apify. Calling

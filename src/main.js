@@ -8,6 +8,7 @@ import { scoreListing } from './trust.js';
 import { buildDigest } from './digest.js';
 import { urgencyFor } from './urgency.js';
 import { detectCrossListingPatterns } from './cross-listing-patterns.js';
+import { loadLearnedPatterns, saveLearnedPatterns, patternsFromPhrases } from './learned-patterns.js';
 
 await Actor.init();
 
@@ -72,6 +73,15 @@ const listings = await scrapeListings({
 
 console.log(`Matching and trust-scoring ${listings.length} listings against the student profile.`);
 
+// Learned patterns from past runs, on top of trust.js's fixed starting
+// list. Failing to load just means we score with the static list only,
+// exactly like before this feature existed, never a hard failure.
+const learnedPhrases = await loadLearnedPatterns((key) => Actor.getValue(key));
+const learnedPatterns = patternsFromPhrases(learnedPhrases);
+if (learnedPhrases.length > 0) {
+    console.log(`Loaded ${learnedPhrases.length} learned scam pattern(s) from past runs.`);
+}
+
 const results = [];
 
 for (const listing of listings) {
@@ -85,7 +95,7 @@ for (const listing of listings) {
     const searchEvidence = match.hardRequirementsMet
         ? await searchForListingEvidence(listing, { sourceHostname: 'phdportal.com', generateContentWithRetry: generateContentForSearch })
         : null;
-    const trust = scoreListing(listing, searchEvidence);
+    const trust = scoreListing(listing, searchEvidence, learnedPatterns);
 
     // Opt-in, off by default: costs one more paced Gemini call per searched
     // listing on top of relevance filtering, which matters given how tight
@@ -138,6 +148,16 @@ try {
     await Actor.setValue('CROSS_LISTING_PATTERNS', crossListing);
     if (crossListing.patterns.length > 0) {
         console.log(`Found ${crossListing.patterns.length} phrase(s) repeating across multiple listings, possible shared template.`);
+        // A phrase repeating across 3+ independent listings in one run is a
+        // validated signal, not a single unverified guess, so it's a
+        // reasonable source to grow the learned-pattern library from. Only
+        // the phrase text is stored, not which listings it came from.
+        const newPhrases = crossListing.patterns.map((p) => p.phrase);
+        await saveLearnedPatterns(
+            (key) => Actor.getValue(key),
+            (key, value) => Actor.setValue(key, value),
+            newPhrases,
+        );
     }
 } catch (err) {
     console.log(`Could not run cross-listing pattern detection: ${err.message}`);

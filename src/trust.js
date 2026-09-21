@@ -47,9 +47,13 @@ const VAGUE_ELIGIBILITY_PATTERNS = [
     /everyone (qualifies|is eligible)/i,
 ];
 
-function checkUpfrontPayment(listing) {
+// extraPatterns is optional: learned-patterns.js can supply phrases learned
+// from past runs on top of this fixed starting list. Defaults to an empty
+// array so every existing caller (including all current tests) behaves
+// exactly as before without needing to know this parameter exists.
+function checkUpfrontPayment(listing, extraPatterns = []) {
     const text = `${listing.description ?? ''} ${listing.eligibility ?? ''}`;
-    const matched = UPFRONT_PAYMENT_PATTERNS.find((p) => p.test(text));
+    const matched = [...UPFRONT_PAYMENT_PATTERNS, ...extraPatterns].find((p) => p.test(text));
     return matched
         ? { triggered: true, evidence: `Requires upfront payment (matched: "${matched.exec(text)[0]}")` }
         : { triggered: false, evidence: null };
@@ -117,11 +121,14 @@ function confidenceFor(listing, searchEvidence) {
 /**
  * Computes a risk score and category from a listing plus optional search
  * evidence. searchEvidence is optional so this can be tested and used before
- * the Google Custom Search integration exists.
+ * the Google Custom Search integration exists. learnedPatterns is also
+ * optional, extra upfront-payment patterns discovered on past runs
+ * (see learned-patterns.js); omitting it uses only the fixed static list,
+ * so every existing call site keeps working exactly as before.
  */
-export function scoreListing(listing, searchEvidence = null) {
+export function scoreListing(listing, searchEvidence = null, learnedPatterns = []) {
     const signals = {
-        upfrontPayment: checkUpfrontPayment(listing),
+        upfrontPayment: checkUpfrontPayment(listing, learnedPatterns),
         extremeUrgency: checkExtremeUrgency(listing),
         vagueEligibility: checkVagueEligibility(listing),
         noIndependentPresence: checkNoIndependentPresence(searchEvidence),

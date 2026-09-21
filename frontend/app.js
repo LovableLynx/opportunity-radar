@@ -1,0 +1,193 @@
+const views = {
+  landing: document.getElementById('view-landing'),
+  form: document.getElementById('view-form'),
+  loading: document.getElementById('view-loading'),
+  error: document.getElementById('view-error'),
+  results: document.getElementById('view-results'),
+};
+
+function showView(name) {
+  Object.values(views).forEach((el) => { el.hidden = true; });
+  views[name].hidden = false;
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+document.getElementById('btn-start').addEventListener('click', () => showView('form'));
+document.getElementById('btn-back-from-form').addEventListener('click', () => showView('landing'));
+document.getElementById('btn-back-from-results').addEventListener('click', () => showView('landing'));
+document.getElementById('btn-error-back').addEventListener('click', () => showView('form'));
+
+document.getElementById('btn-demo').addEventListener('click', async () => {
+  showView('loading');
+  document.getElementById('loading-headline').textContent = 'Loading the example run…';
+  document.getElementById('loading-sub').textContent = 'This is real output from an actual run, not invented.';
+  try {
+    const res = await fetch('demo-data.json');
+    const data = await res.json();
+    renderResults(data.results, data.digest, true);
+  } catch (err) {
+    showError('Could not load the example data. ' + err.message);
+  }
+});
+
+document.getElementById('profile-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const profile = {
+    educationLevel: document.getElementById('educationLevel').value,
+    fieldOfStudy: document.getElementById('fieldOfStudy').value,
+    country: document.getElementById('country').value,
+    fundingNeeded: document.getElementById('fundingNeeded').checked,
+    gpaOrGrade: document.getElementById('gpaOrGrade').value || undefined,
+    cvText: document.getElementById('cvText').value || undefined,
+  };
+
+  showView('loading');
+  runLoadingMessages();
+
+  try {
+    const res = await fetch('/api/run-radar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showError(data.error || 'The Actor run failed.');
+      return;
+    }
+
+    const results = data.results || [];
+    const digest = buildLocalDigest(results);
+    renderResults(results, digest, false);
+  } catch (err) {
+    showError('Could not reach Opportunity Radar. ' + err.message);
+  }
+});
+
+// The live run takes several minutes; cycle through honest stage messages
+// instead of a static spinner with no context.
+function runLoadingMessages() {
+  const headline = document.getElementById('loading-headline');
+  const stages = [
+    'Scanning listings…',
+    'Checking eligibility against your profile…',
+    'Gathering trust evidence…',
+    'Still working — this step paces itself deliberately…',
+  ];
+  let i = 0;
+  headline.textContent = stages[0];
+  const interval = setInterval(() => {
+    i = (i + 1) % stages.length;
+    if (!views.loading.hidden) {
+      headline.textContent = stages[i];
+    } else {
+      clearInterval(interval);
+    }
+  }, 12000);
+}
+
+function showError(message) {
+  document.getElementById('error-message').textContent = message;
+  showView('error');
+}
+
+function buildLocalDigest(results) {
+  const counts = { total: results.length, eligible: 0, partial: 0, notEligible: 0, highRisk: 0, someConcerns: 0 };
+  for (const r of results) {
+    if (r.eligibilityMatch === 'Eligible') counts.eligible++;
+    else if (r.eligibilityMatch === 'Partial') counts.partial++;
+    else if (r.eligibilityMatch === 'Not Eligible') counts.notEligible++;
+    if (r.trustRisk === 'High Risk') counts.highRisk++;
+    else if (r.trustRisk === 'Some Concerns') counts.someConcerns++;
+  }
+  const summary = `Found ${counts.total} opportunities. ${counts.eligible} you're eligible for. ${counts.partial} need a closer look. ${counts.notEligible} you don't qualify for right now.`;
+  return { summary, counts };
+}
+
+function badgeClassForMatch(match) {
+  if (match === 'Eligible') return 'badge-eligible';
+  if (match === 'Partial') return 'badge-partial';
+  return 'badge-noteligible';
+}
+
+function badgeClassForRisk(risk) {
+  if (risk === 'Low Risk') return 'badge-lowrisk';
+  if (risk === 'Some Concerns') return 'badge-someconcerns';
+  return 'badge-highrisk';
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
+}
+
+function renderResults(results, digest, isDemo) {
+  document.getElementById('demo-banner').hidden = !isDemo;
+  document.getElementById('digest-summary').textContent = digest?.summary || `Found ${results.length} opportunities.`;
+
+  const list = document.getElementById('results-list');
+  list.innerHTML = '';
+
+  if (results.length === 0) {
+    list.innerHTML = '<p style="color:var(--muted)">No listings came back for this run.</p>';
+    showView('results');
+    return;
+  }
+
+  for (const r of results) {
+    const card = document.createElement('div');
+    card.className = 'listing-card';
+
+    const titleHtml = r.link
+      ? `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener">${escapeHtml(r.title)}</a>`
+      : escapeHtml(r.title);
+
+    let html = `
+      <div class="listing-top">
+        <div>
+          <div class="listing-title">${titleHtml}</div>
+          <div class="listing-meta">Deadline: ${escapeHtml(r.deadline || 'Not specified')} &middot; ${escapeHtml(r.urgency || 'Unknown')}</div>
+        </div>
+        <div class="badges">
+          <span class="badge ${badgeClassForMatch(r.eligibilityMatch)}">${escapeHtml(r.eligibilityMatch || 'Unknown')}</span>
+          <span class="badge ${badgeClassForRisk(r.trustRisk)}">${escapeHtml(r.trustRisk || 'Unknown')}</span>
+          <span class="badge badge-confidence">${escapeHtml(r.trustConfidence || '?')} confidence</span>
+        </div>
+      </div>
+      <div class="listing-body">
+    `;
+
+    if (r.description) {
+      html += `<p class="listing-desc">${escapeHtml(r.description)}</p>`;
+    }
+
+    if (r.llmInterpretation) {
+      html += `<div class="listing-note"><b>Eligibility:</b> ${escapeHtml(r.llmInterpretation)}</div>`;
+    }
+
+    if (r.missingRequirements?.length) {
+      html += `<div class="listing-note"><b>Missing:</b> ${r.missingRequirements.map(escapeHtml).join(', ')}</div>`;
+    }
+
+    if (r.actionSteps?.length) {
+      html += `<ul class="action-steps">${r.actionSteps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ul>`;
+    }
+
+    if (r.trustEvidence?.length) {
+      html += `<div class="listing-note trust"><b>Trust evidence:</b> ${r.trustEvidence.map(escapeHtml).join('; ')}</div>`;
+    }
+
+    if (r.usedCvEvidence) {
+      html += `<div class="listing-note">Checked against your CV</div>`;
+    }
+
+    html += '</div>';
+    card.innerHTML = html;
+    list.appendChild(card);
+  }
+
+  showView('results');
+}

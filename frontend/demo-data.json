@@ -1,0 +1,303 @@
+{
+  "profile": {
+    "educationLevel": "Bachelors",
+    "fieldOfStudy": "Computer Science",
+    "country": "Nigeria",
+    "fundingNeeded": true
+  },
+  "results": [
+    {
+      "title": "Erasmus+ - Grants for study mobility",
+      "deadline": "Not specified",
+      "description": "As an agency of the Republic of Austria, OeAD offers grants for full-time study abroad within the Erasmus+ programme.",
+      "eligibility": "Eligibility Criteria:\n- Erasmus+ provides grants for full-time studies abroad (funded by EU and national funds of the ministries)\n- Nationality: Austrian\n- Study experience required: High school",
+      "hardRequirementsMet": false,
+      "eligibilityMatch": "Not Eligible",
+      "missingRequirements": [
+        "Requires Austrian nationality, profile says Nigeria"
+      ],
+      "llmInterpretation": null,
+      "actionSteps": [],
+      "usedCvEvidence": false,
+      "trustRisk": "Low Risk",
+      "trustScore": 0,
+      "trustEvidence": [
+        "No risk signals detected based on available evidence"
+      ],
+      "trustConfidence": "Low",
+      "urgency": "Unknown",
+      "daysRemaining": null,
+      "source": "phdportal",
+      "scrapedFor": {
+        "educationLevel": "Bachelors",
+        "fieldOfStudy": "Computer Science",
+        "country": "Nigeria",
+        "fundingNeeded": true
+      }
+    },
+    {
+      "title": "Fulbright U.S. Student Program",
+      "deadline": "07 Oct 2026",
+      "description": "Grant provided by an independent provider offering various benefits.",
+      "eligibility": "",
+      "hardRequirementsMet": true,
+      "eligibilityMatch": "Eligible",
+      "missingRequirements": [],
+      "llmInterpretation": "No eligibility text available to check beyond hard requirements.",
+      "actionSteps": [],
+      "usedCvEvidence": false,
+      "trustRisk": "Low Risk",
+      "trustScore": 1,
+      "trustEvidence": [
+        "No eligibility criteria stated at all"
+      ],
+      "trustConfidence": "Low",
+      "urgency": "Upcoming",
+      "daysRemaining": 16,
+      "source": "phdportal",
+      "scrapedFor": {
+        "educationLevel": "Bachelors",
+        "fieldOfStudy": "Computer Science",
+        "country": "Nigeria",
+        "fundingNeeded": true
+      }
+    },
+    {
+      "title": "China Scholarship Council (CSC) Scholarship",
+      "deadline": "Anytime",
+      "description": "Grant provided by a university offering various benefits.",
+      "eligibility": "Merit-based",
+      "hardRequirementsMet": true,
+      "eligibilityMatch": "Eligible",
+      "missingRequirements": [],
+      "llmInterpretation": "Eligibility is only described as merit-based with no explicit field-of-study or funding restriction stated, so this looks promising but isn't confirmed without more detail from the listing itself.",
+      "actionSteps": [
+        "Check the official program page for the exact merit criteria before applying"
+      ],
+      "usedCvEvidence": false,
+      "trustRisk": "Low Risk",
+      "trustScore": 0,
+      "trustEvidence": [
+        "No risk signals detected based on available evidence"
+      ],
+      "trustConfidence": "Low",
+      "urgency": "Unknown",
+      "daysRemaining": null,
+      "source": "phdportal",
+      "scrapedFor": {
+        "educationLevel": "Bachelors",
+        "fieldOfStudy": "Computer Science",
+        "country": "Nigeria",
+        "fundingNeeded": true
+      }
+    },
+    {
+      "title": "Australia Awards Pacific Scholarships",
+      "deadline": "Not specified",
+      "description": "Grant provided by an independent provider offering various benefits.",
+      "eligibility": "Merit-based",
+      "hardRequirementsMet": true,
+      "eligibilityMatch": "Eligible",
+      "missingRequirements": [],
+      "llmInterpretation": "Eligibility is only described as merit-based with no explicit field-of-study or funding restriction stated, so this looks promising but isn't confirmed without more detail from the listing itself.",
+      "actionSteps": [
+        "Check the official program page for the exact merit criteria before applying"
+      ],
+      "usedCvEvidence": false,
+      "trustRisk": "Low Risk",
+      "trustScore": 0,
+      "trustEvidence": [
+        "No risk signals detected based on available evidence"
+      ],
+      "trustConfidence": "Low",
+      "urgency": "Unknown",
+      "daysRemaining": null,
+      "source": "phdportal",
+      "scrapedFor": {
+        "educationLevel": "Bachelors",
+        "fieldOfStudy": "Computer Science",
+        "country": "Nigeria",
+        "fundingNeeded": true
+      }
+    },
+    {
+      "title": "John Monash Scholarships",
+      "deadline": "30 Jun 2027",
+      "description": "Grant provided by a university offering 94,967,323 NGN.",
+      "eligibility": "Merit-based",
+      "hardRequirementsMet": true,
+      "eligibilityMatch": "Eligible",
+      "missingRequirements": [],
+      "llmInterpretation": "Eligibility is only described as merit-based with no explicit field-of-study or funding restriction stated, so this looks promising but isn't confirmed without more detail from the listing itself.",
+      "actionSteps": [
+        "Check the official program page for the exact merit criteria before applying"
+      ],
+      "usedCvEvidence": false,
+      "trustRisk": "Low Risk",
+      "trustScore": 0,
+      "trustEvidence": [
+        "No risk signals detected based on available evidence"
+      ],
+      "trustConfidence": "Low",
+      "urgency": "Plenty of time",
+      "daysRemaining": 282,
+      "source": "phdportal",
+      "scrapedFor": {
+        "educationLevel": "Bachelors",
+        "fieldOfStudy": "Computer Science",
+        "country": "Nigeria",
+        "fundingNeeded": true
+      }
+    },
+    {
+      "title": "Belgian American Educational Foundation (BAEF)",
+      "deadline": "31 Oct 2026",
+      "description": "Grant provided by an independent provider offering 95,884,563 NGN.",
+      "eligibility": "",
+      "hardRequirementsMet": true,
+      "eligibilityMatch": "Eligible",
+      "missingRequirements": [],
+      "llmInterpretation": "No eligibility text available to check beyond hard requirements.",
+      "actionSteps": [],
+      "usedCvEvidence": false,
+      "trustRisk": "Low Risk",
+      "trustScore": 1,
+      "trustEvidence": [
+        "No eligibility criteria stated at all"
+      ],
+      "trustConfidence": "Low",
+      "urgency": "Upcoming",
+      "daysRemaining": 40,
+      "source": "phdportal",
+      "scrapedFor": {
+        "educationLevel": "Bachelors",
+        "fieldOfStudy": "Computer Science",
+        "country": "Nigeria",
+        "fundingNeeded": true
+      }
+    },
+    {
+      "title": "$1,500 Annual Video Contest Scholarship",
+      "deadline": "31 Oct 2026",
+      "description": "The $1,500 Annual Video Contest Scholarship from IvyPanda requires applicants to record an original video, upload it, subscribe to IvyPanda's YouTube channels, and share the contest post on social media.",
+      "eligibility": "",
+      "hardRequirementsMet": true,
+      "eligibilityMatch": "Eligible",
+      "missingRequirements": [],
+      "llmInterpretation": "No eligibility text available to check beyond hard requirements.",
+      "actionSteps": [],
+      "usedCvEvidence": false,
+      "trustRisk": "Low Risk",
+      "trustScore": 1,
+      "trustEvidence": [
+        "No eligibility criteria stated at all"
+      ],
+      "trustConfidence": "Low",
+      "urgency": "Upcoming",
+      "daysRemaining": 40,
+      "source": "phdportal",
+      "scrapedFor": {
+        "educationLevel": "Bachelors",
+        "fieldOfStudy": "Computer Science",
+        "country": "Nigeria",
+        "fundingNeeded": true
+      }
+    },
+    {
+      "title": "Chinese Government Scholarship - Type A - Bilateral Program",
+      "deadline": "Not specified",
+      "description": "Grant provided by a university offering various benefits.",
+      "eligibility": "",
+      "hardRequirementsMet": true,
+      "eligibilityMatch": "Eligible",
+      "missingRequirements": [],
+      "llmInterpretation": "No eligibility text available to check beyond hard requirements.",
+      "actionSteps": [],
+      "usedCvEvidence": false,
+      "trustRisk": "Low Risk",
+      "trustScore": 1,
+      "trustEvidence": [
+        "No eligibility criteria stated at all"
+      ],
+      "trustConfidence": "Low",
+      "urgency": "Unknown",
+      "daysRemaining": null,
+      "source": "phdportal",
+      "scrapedFor": {
+        "educationLevel": "Bachelors",
+        "fieldOfStudy": "Computer Science",
+        "country": "Nigeria",
+        "fundingNeeded": true
+      }
+    },
+    {
+      "title": "Merit Scholarships",
+      "deadline": "01 Nov 2026",
+      "description": "Grant provided by a university offering 26,634,601 NGN.",
+      "eligibility": "Merit-based",
+      "hardRequirementsMet": true,
+      "eligibilityMatch": "Eligible",
+      "missingRequirements": [],
+      "llmInterpretation": "Eligibility is only described as merit-based with no explicit field-of-study or funding restriction stated, so this looks promising but isn't confirmed without more detail from the listing itself.",
+      "actionSteps": [
+        "Check the official program page for the exact merit criteria before applying"
+      ],
+      "usedCvEvidence": false,
+      "trustRisk": "Low Risk",
+      "trustScore": 0,
+      "trustEvidence": [
+        "No risk signals detected based on available evidence"
+      ],
+      "trustConfidence": "Low",
+      "urgency": "Upcoming",
+      "daysRemaining": 41,
+      "source": "phdportal",
+      "scrapedFor": {
+        "educationLevel": "Bachelors",
+        "fieldOfStudy": "Computer Science",
+        "country": "Nigeria",
+        "fundingNeeded": true
+      }
+    },
+    {
+      "title": "Francesca Norris Memorial Scholarship",
+      "deadline": "01 Nov 2026",
+      "description": "Grant provided by an independent provider offering various benefits.",
+      "eligibility": "Merit-based",
+      "hardRequirementsMet": true,
+      "eligibilityMatch": "Eligible",
+      "missingRequirements": [],
+      "llmInterpretation": "Eligibility is only described as merit-based with no explicit field-of-study or funding restriction stated, so this looks promising but isn't confirmed without more detail from the listing itself.",
+      "actionSteps": [
+        "Check the official program page for the exact merit criteria before applying"
+      ],
+      "usedCvEvidence": false,
+      "trustRisk": "Low Risk",
+      "trustScore": 0,
+      "trustEvidence": [
+        "No risk signals detected based on available evidence"
+      ],
+      "trustConfidence": "Low",
+      "urgency": "Upcoming",
+      "daysRemaining": 41,
+      "source": "phdportal",
+      "scrapedFor": {
+        "educationLevel": "Bachelors",
+        "fieldOfStudy": "Computer Science",
+        "country": "Nigeria",
+        "fundingNeeded": true
+      }
+    }
+  ],
+  "digest": {
+    "summary": "Found 10 opportunities. 9 you're eligible for. 1 you don't qualify for right now.",
+    "counts": {
+      "total": 10,
+      "eligible": 9,
+      "partial": 0,
+      "notEligible": 1,
+      "highRisk": 0,
+      "someConcerns": 0
+    }
+  }
+}

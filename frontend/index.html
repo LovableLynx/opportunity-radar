@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opportunity Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <span class="brand">
+      <svg class="brand-mark" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
+        <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/>
+        <circle cx="12" cy="12" r="1.4" fill="currentColor"/>
+      </svg>
+      Opportunity Radar
+    </span>
+    <a class="topbar-link" href="https://github.com/LovableLynx/opportunity-radar" target="_blank" rel="noopener">Repo</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- HERO / LANDING -->
+  <section class="hero" id="view-landing">
+    <div class="hero-inner">
+      <span class="eyebrow">She Code Africa x Apify BuildHER Hackathon 2026</span>
+      <h1>Find out if you qualify.<br>Find out if it's real.</h1>
+      <p class="hero-sub">Most scholarship sites just hand you a list. Opportunity Radar checks your profile against real listings and tells you what you're eligible for — and separately, whether each one is safe to trust, using actual evidence, not a vibe.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" id="btn-start">Check my eligibility</button>
+        <button class="btn btn-ghost" id="btn-demo">See a live example</button>
+      </div>
+
+      <div class="pillars">
+        <div class="pillar">
+          <span class="pillar-num">01</span>
+          <h3>Do I qualify?</h3>
+          <p>Hard facts — deadline, nationality, education level — checked with plain code, no AI guesswork. An LLM only steps in when the wording is genuinely ambiguous.</p>
+        </div>
+        <div class="pillar">
+          <span class="pillar-num">02</span>
+          <h3>Can I trust it?</h3>
+          <p>Every eligible listing gets checked for scam risk using weighted red-flag detection plus real web-search evidence, paired with an honest confidence score.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FORM -->
+  <section class="form-view" id="view-form" hidden>
+    <div class="form-card">
+      <button class="back-link" id="btn-back-from-form">&larr; Back</button>
+      <h2>Tell us about you</h2>
+      <p class="form-sub">This runs against real, live-scraped listings. A full run takes a few minutes.</p>
+
+      <form id="profile-form">
+        <div class="field">
+          <label for="educationLevel">Education level</label>
+          <select id="educationLevel" required>
+            <option value="" disabled selected>Select one</option>
+            <option value="High school">High school</option>
+            <option value="Bachelors">Bachelors</option>
+            <option value="Masters">Masters</option>
+            <option value="PhD">PhD</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="fieldOfStudy">Field of study</label>
+          <input type="text" id="fieldOfStudy" placeholder="e.g. Computer Science" required>
+        </div>
+
+        <div class="field">
+          <label for="country">Country</label>
+          <input type="text" id="country" placeholder="e.g. Nigeria" required>
+        </div>
+
+        <div class="field field-checkbox">
+          <input type="checkbox" id="fundingNeeded" checked>
+          <label for="fundingNeeded">I need funding support</label>
+        </div>
+
+        <div class="field">
+          <label for="gpaOrGrade">GPA / grade <span class="optional">(optional)</span></label>
+          <input type="text" id="gpaOrGrade" placeholder="e.g. 3.6/4.0">
+        </div>
+
+        <div class="field">
+          <label for="cvText">CV text <span class="optional">(optional, improves matching)</span></label>
+          <textarea id="cvText" rows="4" placeholder="Paste your CV as plain text. When provided, ambiguous eligibility criteria get checked against it instead of coming back unconfirmed."></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="btn-submit">Run Opportunity Radar</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- LOADING -->
+  <section class="loading-view" id="view-loading" hidden>
+    <div class="loading-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <h2 id="loading-headline">Scanning listings&hellip;</h2>
+      <p class="loading-sub" id="loading-sub">This can take a few minutes &mdash; the Actor scrapes, matches, and trust-checks each listing in turn.</p>
+    </div>
+  </section>
+
+  <!-- ERROR -->
+  <section class="error-view" id="view-error" hidden>
+    <div class="error-card">
+      <h2>Something went wrong</h2>
+      <p id="error-message"></p>
+      <button class="btn btn-primary" id="btn-error-back">Try again</button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="results-view" id="view-results" hidden>
+    <div class="results-inner">
+      <button class="back-link" id="btn-back-from-results">&larr; Start over</button>
+
+      <div class="results-banner" id="demo-banner" hidden>
+        <span class="demo-dot"></span> Showing a real example run &mdash; not your own results yet.
+      </div>
+
+      <h2 class="digest-summary" id="digest-summary"></h2>
+
+      <div class="results-list" id="results-list"></div>
+    </div>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

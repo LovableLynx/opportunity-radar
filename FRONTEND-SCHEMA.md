@@ -78,6 +78,21 @@ found. This is a real example pulled from an actual run, not invented:
   "read more" pattern in the results view, not a fixed-height card that
   clips it silently.
 
+## Digest (optional summary)
+
+The Actor also saves a plain-English summary to its key-value store under
+the key `DIGEST`, something like:
+
+```json
+{
+  "summary": "Found 20 opportunities. 9 you're eligible for. 10 need a closer look, something about them is unclear. 1 you don't qualify for right now.",
+  "counts": { "total": 20, "eligible": 9, "partial": 10, "notEligible": 1, "highRisk": 0, "someConcerns": 0 }
+}
+```
+
+Good for a headline summary at the top of the results page, before the
+per-listing list.
+
 ## How to call it
 
 The Actor is deployed at `lovablelynx/opportunity-radar` on Apify. Calling

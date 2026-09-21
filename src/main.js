@@ -4,6 +4,7 @@ import { scrapeListings } from './scrape.js';
 import { matchListing } from './match.js';
 import { searchForListingEvidence } from './search.js';
 import { scoreListing } from './trust.js';
+import { buildDigest } from './digest.js';
 
 await Actor.init();
 
@@ -68,6 +69,8 @@ const listings = await scrapeListings({
 
 console.log(`Matching and trust-scoring ${listings.length} listings against the student profile.`);
 
+const results = [];
+
 for (const listing of listings) {
     const match = await matchListing(listing, profile, generateContentWithRetry);
 
@@ -81,12 +84,19 @@ for (const listing of listings) {
         : null;
     const trust = scoreListing(listing, searchEvidence);
 
-    await Actor.pushData({
-        ...listing,
-        ...match,
-        ...trust,
-        scrapedFor: profile,
-    });
+    const record = { ...listing, ...match, ...trust, scrapedFor: profile };
+    results.push(record);
+    await Actor.pushData(record);
+}
+
+// Digest is a pure add-on: if it throws for any reason, log it and move on
+// rather than losing the per-listing results we already pushed.
+try {
+    const digest = buildDigest(results);
+    await Actor.setValue('DIGEST', digest);
+    console.log(digest.summary);
+} catch (err) {
+    console.log(`Could not build results digest: ${err.message}`);
 }
 
 await Actor.exit();

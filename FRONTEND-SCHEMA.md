@@ -61,6 +61,12 @@ found. This is a real example pulled from an actual run, not invented:
   reasoning. Can be `null` when the listing was rejected on a hard
   requirement before the LLM was ever called, that's not a bug or missing
   data, it's the point (see the README's phase 2 notes on why).
+- **`actionSteps`** is an array of concrete next steps for `Partial`
+  matches, things the student could actually do to strengthen their case
+  (e.g. "add any research-adjacent coursework to your application"). Empty
+  array for `Eligible` and `Not Eligible`, there's nothing actionable to
+  suggest in either case. Good as a small checklist under the eligibility
+  badge when the array isn't empty.
 - **`trustRisk`** is one of `"Low Risk"`, `"Some Concerns"`, `"High Risk"`.
   This needs its own distinct visual treatment from `eligibilityMatch`,
   they're answering two different questions ("do I qualify" vs "can I

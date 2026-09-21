@@ -100,6 +100,7 @@ export async function matchListing(listing, profile, generateContentWithRetry) {
             eligibilityMatch: 'Not Eligible',
             missingRequirements: failures,
             llmInterpretation: null,
+            actionSteps: [],
         };
     }
 
@@ -112,6 +113,7 @@ export async function matchListing(listing, profile, generateContentWithRetry) {
             eligibilityMatch: 'Eligible',
             missingRequirements: [],
             llmInterpretation: 'No eligibility text available to check beyond hard requirements.',
+            actionSteps: [],
         };
     }
 
@@ -127,7 +129,8 @@ The student already passes every hard, objectively-checkable requirement (nation
 Return ONLY a JSON object with:
 - "hasUnresolvedCriteria": true or false
 - "missingOrUnclear": an array of short strings describing anything ambiguous that could affect this student (empty array if none)
-- "reasoning": one sentence explaining your call`;
+- "reasoning": one sentence explaining your call
+- "actionSteps": an array of concrete, specific next steps the student could take to strengthen their application against the unclear criteria (empty array if hasUnresolvedCriteria is false). Each step should be something the student can actually do, not a restatement of the problem. For example, not "research experience is unclear" but "add any research-adjacent coursework or a supervised project to your application, even if it wasn't formally labeled research".`;
 
     const extraction = await generateContentWithRetry(prompt);
     const rawText = extraction.response.text() ?? '{}';
@@ -138,7 +141,7 @@ Return ONLY a JSON object with:
         llmResult = JSON.parse(jsonMatch ? jsonMatch[0] : '{}');
     } catch (err) {
         console.log(`Could not parse match interpretation for "${listing.title}": ${err.message}`);
-        llmResult = { hasUnresolvedCriteria: false, missingOrUnclear: [], reasoning: 'Interpretation unavailable.' };
+        llmResult = { hasUnresolvedCriteria: false, missingOrUnclear: [], reasoning: 'Interpretation unavailable.', actionSteps: [] };
     }
 
     return {
@@ -146,5 +149,6 @@ Return ONLY a JSON object with:
         eligibilityMatch: llmResult.hasUnresolvedCriteria ? 'Partial' : 'Eligible',
         missingRequirements: llmResult.missingOrUnclear ?? [],
         llmInterpretation: llmResult.reasoning ?? null,
+        actionSteps: llmResult.actionSteps ?? [],
     };
 }

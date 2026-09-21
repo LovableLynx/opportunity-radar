@@ -51,10 +51,10 @@ listing.
 npm test
 ```
 
-22 tests across three files: `src/match.js` (deadline, nationality, education
-level checks), `src/trust.js` (the weighted risk-scoring rule), and
-`src/search.js` (DuckDuckGo evidence parsing, with `fetch` mocked). None of
-them call a real API, so run them freely without touching quota. Useful for
+115 tests across the `test/` directory, covering matching, trust scoring,
+search evidence parsing, digest, urgency, cross-listing pattern detection,
+learned patterns, CV evidence, action steps, and compare mode. None of them
+call a real API, so run them freely without touching quota. Useful for
 verifying logic changes before spending a real call to confirm end to end.
 
 ## Where things stand

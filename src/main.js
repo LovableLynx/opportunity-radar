@@ -90,6 +90,12 @@ if (input.compareListingA && input.compareListingB) {
         ? ['phdportal', 'opportunitydesk']
         : ['phdportal'];
 
+    // Env-gated flags have silently failed to take effect before (set in
+    // the console but not actually baked into the build that ran, with no
+    // visible sign why), so every run logs exactly what it saw, checkable
+    // in the run log instead of guessed at.
+    console.log(`Config: OPPORTUNITY_RADAR_TEST_MODE=${JSON.stringify(process.env.OPPORTUNITY_RADAR_TEST_MODE)} (isTestRun=${isTestRun}), ENABLE_OPPORTUNITY_DESK=${JSON.stringify(process.env.ENABLE_OPPORTUNITY_DESK)}, ENABLE_ALUMNI_SIGNAL=${JSON.stringify(process.env.ENABLE_ALUMNI_SIGNAL)}, GOOGLE_API_KEY_SEARCH set=${Boolean(process.env.GOOGLE_API_KEY_SEARCH)}`);
+
     const listings = await scrapeListings({
         client,
         generateContentWithRetry,

@@ -12,11 +12,34 @@
 
 // Starting weights — a reasonable first pass, not a final answer. Tune these
 // once we've seen how they perform against a real evaluation set.
+//
+// A real production run surfaced a conflation bug: 18/20 real listings
+// landed on High Risk, every one of them also reporting Low trustConfidence
+// — the score was punishing "we don't have data on this" as if it were
+// "this looks like a scam". Root cause was vagueEligibility firing
+// identically whether the eligibility text actually said something
+// red-flag-shaped ("open to everyone") or the text was simply never fetched
+// (enrichLimitPerSource only enriches a handful of listings per run, so
+// most never get real eligibility text at all). Those are different
+// strengths of evidence, now two separate signals:
+//   - missingEligibility (weight 1): "we don't know" — absence of data
+//   - vagueEligibility (weight 2): "the text itself is a red flag" —
+//     actual red-flag-shaped language was found
+// A missing-data-only combo (noIndependentPresence + missingEligibility +
+// noSecondaryListing = 1+1+1 = 3) now tops out at Some Concerns, not High
+// Risk. A genuinely fabricated listing with real vague-pattern text (see
+// the "Phantom Foundation Award" eval case: vagueEligibility +
+// noIndependentPresence + noSecondaryListing = 2+1+1 = 4) still reaches
+// High Risk, since real evidence of a red flag outweighs mere absence of
+// verification. Any actual scam pattern (upfrontPayment=3, or
+// extremeUrgency combined with anything) still dominates the score on its
+// own regardless.
 const SIGNAL_WEIGHTS = {
     upfrontPayment: 3,
-    noIndependentPresence: 2,
+    vagueEligibility: 2,
+    noIndependentPresence: 1,
     extremeUrgency: 1,
-    vagueEligibility: 1,
+    missingEligibility: 1,
     noSecondaryListing: 1,
 };
 
@@ -67,14 +90,26 @@ function checkExtremeUrgency(listing) {
         : { triggered: false, evidence: null };
 }
 
+// Split from missingEligibility below: this only fires on real text that
+// actually reads as a red flag ("open to everyone"), not on the absence of
+// text. Empty eligibility isn't evidence of anything by itself — most
+// listings never get their detail page enriched at all (enrichLimitPerSource
+// caps that), so "we don't know" was getting scored the same as "the
+// listing itself waves a red flag", which is a different strength of
+// evidence entirely.
 function checkVagueEligibility(listing) {
     const text = listing.eligibility ?? '';
-    if (!text) {
-        return { triggered: true, evidence: 'No eligibility criteria stated at all' };
-    }
+    if (!text) return { triggered: false, evidence: null };
     const matched = VAGUE_ELIGIBILITY_PATTERNS.find((p) => p.test(text));
     return matched
         ? { triggered: true, evidence: `Eligibility criteria are vague ("${matched.exec(text)[0]}")` }
+        : { triggered: false, evidence: null };
+}
+
+function checkMissingEligibility(listing) {
+    const text = listing.eligibility ?? '';
+    return !text
+        ? { triggered: true, evidence: 'No eligibility criteria available (detail page not yet checked)' }
         : { triggered: false, evidence: null };
 }
 
@@ -131,6 +166,7 @@ export function scoreListing(listing, searchEvidence = null, learnedPatterns = [
         upfrontPayment: checkUpfrontPayment(listing, learnedPatterns),
         extremeUrgency: checkExtremeUrgency(listing),
         vagueEligibility: checkVagueEligibility(listing),
+        missingEligibility: checkMissingEligibility(listing),
         noIndependentPresence: checkNoIndependentPresence(searchEvidence),
         noSecondaryListing: checkNoSecondaryListing(searchEvidence),
     };

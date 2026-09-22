@@ -46,7 +46,7 @@ found. This is a real example pulled from an actual run, not invented:
   "llmInterpretation": "No eligibility text available to check beyond hard requirements.",
   "trustRisk": "Low Risk",
   "trustScore": 1,
-  "trustEvidence": ["No eligibility criteria stated at all"]
+  "trustEvidence": ["No eligibility criteria available (detail page not yet checked)"]
 }
 ```
 

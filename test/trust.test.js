@@ -31,8 +31,8 @@ test('a listing requiring an upfront processing fee is flagged', () => {
 
     const result = scoreListing(listing);
 
-    // upfront payment (3) + vague eligibility (1) = 4 -> High Risk
-    assert.equal(result.trustScore, 4);
+    // upfront payment (3) + vague eligibility (2) = 5 -> High Risk
+    assert.equal(result.trustScore, 5);
     assert.equal(result.trustRisk, 'High Risk');
     assert.ok(result.trustEvidence.some((e) => /upfront payment/i.test(e)));
     assert.ok(result.trustEvidence.some((e) => /vague/i.test(e)));
@@ -65,18 +65,25 @@ test('a synthetic adversarial listing with multiple red flags scores High Risk',
 
     const result = scoreListing(listing, searchEvidence);
 
-    // upfront(3) + urgency(1) + vague(1) + noIndependentPresence(2) + noSecondary(1) = 8
+    // upfront(3) + urgency(1) + vague(2) + noIndependentPresence(1) + noSecondary(1) = 8
     assert.equal(result.trustScore, 8);
     assert.equal(result.trustRisk, 'High Risk');
     assert.equal(result.trustEvidence.length, 5);
 });
 
-test('missing eligibility text counts as vague, not silently ignored', () => {
+test('missing eligibility text is tracked separately from vague eligibility text, and does not alone reach High Risk', () => {
+    // missingEligibility ("we don't know") and vagueEligibility ("the text
+    // itself is a red flag") are deliberately different signals — see
+    // trust.js's SIGNAL_WEIGHTS comment for why. A listing with no
+    // eligibility text at all shouldn't be scored the same as one that
+    // actively says "open to everyone".
     const listing = { title: 'No Info Scholarship', description: 'A grant.', eligibility: null };
 
     const result = scoreListing(listing);
 
-    assert.ok(result.trustEvidence.some((e) => /No eligibility criteria stated/i.test(e)));
+    assert.ok(result.trustEvidence.some((e) => /No eligibility criteria available/i.test(e)));
+    assert.equal(result.trustScore, 1);
+    assert.equal(result.trustRisk, 'Low Risk');
 });
 
 test('no search evidence available does not penalize the listing', () => {
@@ -91,6 +98,28 @@ test('no search evidence available does not penalize the listing', () => {
     const result = scoreListing(listing);
 
     assert.equal(result.trustRisk, 'Low Risk');
+});
+
+test('a legitimate listing with no enriched eligibility text and empty search results does not reach High Risk', () => {
+    // Regression test for a real production incident: a run where most
+    // listings never got their detail page enriched (enrichLimitPerSource
+    // caps how many do) AND search evidence came back empty for everything
+    // sent 18/20 real, legitimate listings to High Risk, all of them also
+    // honestly reporting Low confidence. The score was conflating "we don't
+    // have enough data" with "this looks like a scam". This is exactly that
+    // combination: no eligibility text (not enriched yet), no search hits,
+    // no actual red-flag language anywhere.
+    const listing = {
+        title: 'Francesca Norris Memorial Scholarship',
+        description: 'A memorial scholarship for undergraduate students.',
+        eligibility: null,
+    };
+    const searchEvidence = { independentResultsFound: false, secondarySourceFound: false, resultCount: 0 };
+
+    const result = scoreListing(listing, searchEvidence);
+
+    assert.notEqual(result.trustRisk, 'High Risk');
+    assert.equal(result.trustConfidence, 'Low');
 });
 
 test('trustRisk labels never claim certainty the evidence does not support', () => {

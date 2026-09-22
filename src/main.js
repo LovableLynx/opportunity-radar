@@ -132,7 +132,7 @@ if (input.compareListingA && input.compareListingB) {
     // an exact source identifier to every run, so "is this actually running
     // what I just pushed" is a log line, not a guess: bump BUILD_MARKER any
     // time you need to force-verify a deploy actually landed.
-    const BUILD_MARKER = '2026-09-22-groq-gpt-oss-20b-and-scrape-crash-fixes';
+    const BUILD_MARKER = '2026-09-22-trust-scoring-missing-data-fix';
     console.log(`Build marker: ${BUILD_MARKER}`);
 
     // Env-gated flags have silently failed to take effect before (set in

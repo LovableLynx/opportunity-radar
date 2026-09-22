@@ -33,6 +33,32 @@ for (const listing of realListings) {
 }
 console.log(`\n${realPass}/${realListings.length} real listings correctly scored Low Risk (no false positives on genuine opportunities)\n`);
 
+console.log('=== Real listings with empty search evidence (real-world condition, obscure orgs or a blocked/rate-limited search) ===\n');
+
+// The pass above never exercises the search-based signals at all
+// (searchEvidence defaults to null), which is exactly how a real bug
+// shipped once: a production run where DuckDuckGo/enrichment came back
+// empty for most listings sent 18/20 real, legitimate listings to High
+// Risk, and this eval set didn't catch it because it never simulated that
+// condition. This pass does: every real listing gets scored again as if
+// search found nothing (searchEvidence present but empty), which is exactly
+// what happens for a real but obscure/small-web-presence organization, or
+// any time search itself is degraded. None of these should reach High
+// Risk on missing data alone — only a listing with an actual red-flag
+// pattern (payment, urgency, vague language) should.
+const emptySearchEvidence = { independentResultsFound: false, secondarySourceFound: false, resultCount: 0 };
+
+let noFalseHighRisk = 0;
+for (const listing of realListings) {
+    const result = scoreListing(listing, emptySearchEvidence);
+    const ok = result.trustRisk !== 'High Risk';
+    if (ok) noFalseHighRisk++;
+    const status = ok ? '✔' : '✗ FALSE HIGH RISK';
+    console.log(`${status}  ${listing.title} — ${result.trustRisk} (score ${result.trustScore}, confidence ${result.trustConfidence})`);
+    if (!ok) console.log(`   Evidence: ${result.trustEvidence.join('; ')}`);
+}
+console.log(`\n${noFalseHighRisk}/${realListings.length} real listings correctly avoided High Risk purely from missing search evidence\n`);
+
 console.log('=== Synthetic listings (expect risk to match documented expectedRisk) ===\n');
 
 let synPass = 0;
@@ -54,6 +80,6 @@ for (const listing of syntheticListings) {
 }
 console.log(`${synPass}/${syntheticListings.length} synthetic listings scored as expected\n`);
 
-const allPass = realPass === realListings.length && synPass === syntheticListings.length;
+const allPass = realPass === realListings.length && noFalseHighRisk === realListings.length && synPass === syntheticListings.length;
 console.log(allPass ? '✅ Eval set passes.' : '❌ Eval set has mismatches — review above.');
 process.exit(allPass ? 0 : 1);

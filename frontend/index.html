@@ -58,8 +58,9 @@
       <button class="back-link" id="btn-back-from-form">&larr; Back</button>
       <h2>Tell us about you</h2>
       <p class="form-sub">This runs against real, live-scraped listings. A full run takes a few minutes.</p>
+      <p class="form-error-banner" id="form-error-banner" hidden>Please complete the highlighted fields before continuing.</p>
 
-      <form id="profile-form">
+      <form id="profile-form" novalidate>
         <div class="field">
           <label for="educationLevel">Education level</label>
           <select id="educationLevel" required>
@@ -69,16 +70,19 @@
             <option value="Masters">Masters</option>
             <option value="PhD">PhD</option>
           </select>
+          <p class="field-error" id="error-educationLevel" hidden>Please select your education level.</p>
         </div>
 
         <div class="field">
           <label for="fieldOfStudy">Field of study</label>
           <input type="text" id="fieldOfStudy" placeholder="e.g. Computer Science" required>
+          <p class="field-error" id="error-fieldOfStudy" hidden>Please enter your field of study.</p>
         </div>
 
         <div class="field">
           <label for="country">Country</label>
           <input type="text" id="country" placeholder="e.g. Nigeria" required>
+          <p class="field-error" id="error-country" hidden>Please enter your country.</p>
         </div>
 
         <div class="field field-checkbox">
@@ -113,9 +117,10 @@
   <!-- ERROR -->
   <section class="error-view" id="view-error" hidden>
     <div class="error-card">
-      <h2>Something went wrong</h2>
+      <h2>We couldn't complete your search</h2>
       <p id="error-message"></p>
-      <button class="btn btn-primary" id="btn-error-back">Try again</button>
+      <button class="btn btn-primary" id="btn-error-retry">Try again</button>
+      <button class="back-link" id="btn-error-back">Edit profile</button>
     </div>
   </section>
 
@@ -131,6 +136,21 @@
       <h2 class="digest-summary" id="digest-summary"></h2>
 
       <div class="results-list" id="results-list"></div>
+
+      <div class="no-results" id="no-results" hidden>
+        <h3>No matching opportunities found</h3>
+        <p>We couldn't find opportunities that currently match the information you provided.</p>
+        <p class="no-results-label">You can try:</p>
+        <ul class="no-results-tips">
+          <li>Review your field of study</li>
+          <li>Check that your profile information is correct</li>
+          <li>Try again later as new opportunities become available</li>
+        </ul>
+        <div class="no-results-actions">
+          <button class="btn btn-primary" id="btn-no-results-edit">Edit profile</button>
+          <button class="btn btn-ghost" id="btn-no-results-retry">Try again</button>
+        </div>
+      </div>
     </div>
   </section>
 

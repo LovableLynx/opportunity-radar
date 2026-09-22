@@ -12,10 +12,13 @@ function showView(name) {
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
-document.getElementById('btn-start').addEventListener('click', () => showView('form'));
+document.getElementById('btn-start').addEventListener('click', () => { clearFieldErrors(); showView('form'); });
 document.getElementById('btn-back-from-form').addEventListener('click', () => showView('landing'));
 document.getElementById('btn-back-from-results').addEventListener('click', () => showView('landing'));
-document.getElementById('btn-error-back').addEventListener('click', () => showView('form'));
+document.getElementById('btn-error-back').addEventListener('click', () => { clearFieldErrors(); showView('form'); });
+document.getElementById('btn-error-retry').addEventListener('click', () => {
+  document.getElementById('profile-form').requestSubmit();
+});
 
 document.getElementById('btn-demo').addEventListener('click', async () => {
   showView('loading');
@@ -30,8 +33,38 @@ document.getElementById('btn-demo').addEventListener('click', async () => {
   }
 });
 
+// Field-level validation, matching the Figma 01B validation-error screen:
+// an inline message under each invalid required field, plus a banner at
+// the top of the form. Required fields only — optional fields never block.
+const REQUIRED_FIELDS = ['educationLevel', 'fieldOfStudy', 'country'];
+
+function clearFieldErrors() {
+  document.getElementById('form-error-banner').hidden = true;
+  for (const id of REQUIRED_FIELDS) {
+    document.getElementById(id).closest('.field').classList.remove('has-error');
+    document.getElementById(`error-${id}`).hidden = true;
+  }
+}
+
+function validateForm() {
+  let hasError = false;
+  for (const id of REQUIRED_FIELDS) {
+    const field = document.getElementById(id);
+    if (!field.value.trim()) {
+      field.closest('.field').classList.add('has-error');
+      document.getElementById(`error-${id}`).hidden = false;
+      hasError = true;
+    }
+  }
+  document.getElementById('form-error-banner').hidden = !hasError;
+  return !hasError;
+}
+
 document.getElementById('profile-form').addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  clearFieldErrors();
+  if (!validateForm()) return;
 
   const profile = {
     educationLevel: document.getElementById('educationLevel').value,
@@ -54,14 +87,19 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
     const startData = await startRes.json();
 
     if (!startRes.ok) {
-      showError(startData.error || 'Could not start the run.');
+      showError(startData.error || "We couldn't complete your search. Something interrupted the opportunity analysis. Please try again.");
       return;
     }
 
     await pollRunUntilDone(startData.runId);
   } catch (err) {
-    showError('Could not reach Opportunity Radar. ' + err.message);
+    showError("We couldn't complete your search. Something interrupted the opportunity analysis. Please try again.");
   }
+});
+
+document.getElementById('btn-no-results-edit').addEventListener('click', () => showView('form'));
+document.getElementById('btn-no-results-retry').addEventListener('click', () => {
+  document.getElementById('profile-form').requestSubmit();
 });
 
 // A real run takes several minutes, so poll for status instead of holding
@@ -161,16 +199,22 @@ function escapeHtml(str) {
 
 function renderResults(results, digest, isDemo) {
   document.getElementById('demo-banner').hidden = !isDemo;
-  document.getElementById('digest-summary').textContent = digest?.summary || `Found ${results.length} opportunities.`;
 
   const list = document.getElementById('results-list');
+  const noResults = document.getElementById('no-results');
   list.innerHTML = '';
 
   if (results.length === 0) {
-    list.innerHTML = '<p style="color:var(--muted)">No listings came back for this run.</p>';
+    document.getElementById('digest-summary').textContent = '0 opportunities found';
+    list.hidden = true;
+    noResults.hidden = false;
     showView('results');
     return;
   }
+
+  list.hidden = false;
+  noResults.hidden = true;
+  document.getElementById('digest-summary').textContent = digest?.summary || `Found ${results.length} opportunities.`;
 
   for (const r of results) {
     const card = document.createElement('div');

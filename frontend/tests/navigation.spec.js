@@ -25,11 +25,23 @@ test.describe('landing and navigation', () => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Check my eligibility' }).click();
 
-    // Submitting empty required fields should not navigate away from the form.
+    // Submitting empty required fields should not navigate away from the form,
+    // and should show the inline per-field errors plus the top banner
+    // (matches the Figma 01B validation-error screen).
     await page.getByRole('button', { name: 'Run Opportunity Radar' }).click();
     await expect(page.locator('#view-form')).toBeVisible();
 
-    const educationLevel = page.locator('#educationLevel');
-    await expect(educationLevel).toHaveJSProperty('validity.valid', false);
+    await expect(page.locator('#form-error-banner')).toBeVisible();
+    await expect(page.locator('#error-educationLevel')).toBeVisible();
+    await expect(page.locator('#error-fieldOfStudy')).toBeVisible();
+    await expect(page.locator('#error-country')).toBeVisible();
+
+    // Filling in the fields and resubmitting clears the errors.
+    await page.selectOption('#educationLevel', 'Bachelors');
+    await page.fill('#fieldOfStudy', 'Computer Science');
+    await page.fill('#country', 'Nigeria');
+    await page.getByRole('button', { name: 'Run Opportunity Radar' }).click();
+
+    await expect(page.locator('#form-error-banner')).toBeHidden();
   });
 });

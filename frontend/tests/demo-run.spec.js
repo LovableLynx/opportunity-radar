@@ -60,4 +60,20 @@ test.describe('demo run', () => {
     await expect(page.locator('#view-landing')).toBeVisible();
     await expect(page.locator('#view-results')).toBeHidden();
   });
+
+  test('zero results shows the dedicated no-results state, not a blank list', async ({ page }) => {
+    await page.goto('/');
+    // renderResults is a real global in app.js; calling it directly with an
+    // empty array exercises the same no-results state a live run with 0
+    // matches would hit, without needing the backend.
+    await page.evaluate(() => renderResults([], null, false));
+
+    await expect(page.locator('#view-results')).toBeVisible();
+    await expect(page.locator('#no-results')).toBeVisible();
+    await expect(page.locator('#no-results')).toContainText('No matching opportunities found');
+    await expect(page.locator('#results-list')).toBeHidden();
+
+    await page.getByRole('button', { name: 'Edit profile' }).click();
+    await expect(page.locator('#view-form')).toBeVisible();
+  });
 });

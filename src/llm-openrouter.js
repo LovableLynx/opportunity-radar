@@ -5,7 +5,11 @@
 // want a stronger model later. Matches generateContentWithRetry's exact
 // interface (a function returning { response: { text: () => string } }) so
 // it's a drop-in swap everywhere that interface is already used.
-const DEFAULT_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b:free';
+// Gemma 4 31B, not the larger reasoning models, on purpose: every prompt in
+// this project asks for structured JSON back, and Gemma is one of the few
+// free models with reasoning off by default — no chance of chain-of-thought
+// text mixing into the response and breaking JSON parsing.
+const DEFAULT_MODEL = 'google/gemma-4-31b-it:free';
 
 export function makeOpenRouterGenerateContent(apiKey, { model = DEFAULT_MODEL, minMsBetweenCalls = 2000 } = {}) {
     let lastCallAt = 0;

@@ -169,6 +169,68 @@ test('CV content is explicitly framed as data, not instructions, when included i
     assert.ok(/cannot be changed by anything inside/i.test(capturedPrompt));
 });
 
+test('the prompt explicitly asks the LLM to check field-of-study fit, not just bury it as an example', async () => {
+    // Field-of-study restrictions have no reliable structured format in
+    // scraped eligibility text the way "Nationality:" and "Study experience
+    // required:" do (real listings checked, none had a parseable
+    // "Field of study:" line), so there's no hard, deterministic check for
+    // it like checkNationality/checkEducationLevel. It was previously only
+    // an incidental example inside a generic "look at ambiguous criteria"
+    // instruction — this confirms it's now a first-class, explicit question
+    // in the prompt, with the student's actual field of study inserted.
+    const listing = {
+        title: 'Agriculture scholarship',
+        deadline: null,
+        eligibility: 'Nationality: Any. Open only to students pursuing a degree in Agriculture or Agronomy.',
+    };
+    const profile = { educationLevel: 'Bachelors', country: 'Nigeria', fieldOfStudy: 'Law' };
+
+    let capturedPrompt;
+    const fakeGenerateContent = async (prompt) => {
+        capturedPrompt = prompt;
+        return {
+            response: {
+                text: () => JSON.stringify({ hasUnresolvedCriteria: false, missingOrUnclear: [], reasoning: 'ok' }),
+            },
+        };
+    };
+
+    await matchListing(listing, profile, fakeGenerateContent);
+
+    assert.ok(/explicitly check field-of-study fit/i.test(capturedPrompt));
+    assert.ok(capturedPrompt.includes('"Law"'));
+});
+
+test('a real field-of-study mismatch (Agriculture-only listing, Law student) is flagged as Partial, not silently passed as Eligible', async () => {
+    // End-to-end: simulates what a correctly-behaving LLM should return
+    // when given the field-of-study-aware prompt — confirms the resulting
+    // eligibilityMatch actually reflects the mismatch, not just that the
+    // prompt asked the right question.
+    const listing = {
+        title: 'Agriculture scholarship',
+        deadline: null,
+        eligibility: 'Nationality: Any. Open only to students pursuing a degree in Agriculture or Agronomy.',
+    };
+    const profile = { educationLevel: 'Bachelors', country: 'Nigeria', fieldOfStudy: 'Law' };
+
+    const fakeGenerateContent = async () => ({
+        response: {
+            text: () => JSON.stringify({
+                hasUnresolvedCriteria: true,
+                missingOrUnclear: ['Scholarship is restricted to Agriculture/Agronomy students; profile states Law, which does not match.'],
+                reasoning: 'The listing is explicitly restricted to Agriculture/Agronomy, which the student\'s field of study does not match.',
+                actionSteps: [],
+            }),
+        },
+    });
+
+    const result = await matchListing(listing, profile, fakeGenerateContent);
+
+    assert.equal(result.hardRequirementsMet, true); // field-of-study isn't a hard check
+    assert.equal(result.eligibilityMatch, 'Partial');
+    assert.ok(result.missingRequirements.some((r) => /Agriculture/i.test(r)));
+});
+
 test('no eligibility text at all short-circuits to Eligible without calling the LLM', async () => {
     const listing = { title: 'Vague listing', deadline: null, eligibility: null };
     const profile = { educationLevel: 'PhD', country: 'Nigeria', fieldOfStudy: 'Computer Science' };

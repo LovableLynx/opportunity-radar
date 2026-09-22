@@ -88,11 +88,15 @@ if (input.compareListingA && input.compareListingB) {
     const useGemini = process.env.LLM_PROVIDER === 'gemini';
     const useOpenRouter = process.env.LLM_PROVIDER === 'openrouter';
 
+    // GROQ_MODEL is optional: Groq deprecates/removes models from time to
+    // time (llama-3.3-70b-versatile 404'd in production once already), so
+    // this lets the model be swapped via an env var and a rebuild instead
+    // of a code change, if the current default ever goes the same way.
     const generateContentWithRetry = useGemini
         ? makeGenerateContentWithRetry(process.env.GOOGLE_API_KEY)
         : useOpenRouter
             ? makeOpenRouterGenerateContent(process.env.OPENROUTER_API_KEY)
-            : makeGroqGenerateContent(process.env.GROQ_API_KEY);
+            : makeGroqGenerateContent(process.env.GROQ_API_KEY, process.env.GROQ_MODEL ? { model: process.env.GROQ_MODEL } : {});
 
     // Falls back to the main key/provider if no second Gemini key is set, so
     // this works whether or not GOOGLE_API_KEY_SEARCH is configured. Only
@@ -128,7 +132,7 @@ if (input.compareListingA && input.compareListingB) {
     // an exact source identifier to every run, so "is this actually running
     // what I just pushed" is a log line, not a guess: bump BUILD_MARKER any
     // time you need to force-verify a deploy actually landed.
-    const BUILD_MARKER = '2026-09-22-groq-default';
+    const BUILD_MARKER = '2026-09-22-groq-gpt-oss-20b-and-scrape-crash-fixes';
     console.log(`Build marker: ${BUILD_MARKER}`);
 
     // Env-gated flags have silently failed to take effect before (set in

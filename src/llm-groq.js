@@ -6,7 +6,15 @@
 // generateContentWithRetry's exact interface (a function returning
 // { response: { text: () => string } }) so it's a drop-in swap everywhere
 // that interface is already used.
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+//
+// llama-3.3-70b-versatile (the original default here) was deprecated from
+// Groq's catalog and started 404ing in production, confirmed directly
+// against the account's actual available models. openai/gpt-oss-20b is a
+// real, current model on the account (verified in Groq Console), and is
+// deliberately the smaller "text to text" model rather than the 120b
+// reasoning-focused one, plenty for eligibility interpretation and listing
+// extraction, and cheaper/faster on the free tier.
+const DEFAULT_MODEL = 'openai/gpt-oss-20b';
 
 export function makeGroqGenerateContent(apiKey, { model = DEFAULT_MODEL, minMsBetweenCalls = 2000 } = {}) {
     let lastCallAt = 0;
@@ -27,6 +35,13 @@ export function makeGroqGenerateContent(apiKey, { model = DEFAULT_MODEL, minMsBe
                     body: JSON.stringify({
                         model,
                         messages: [{ role: 'user', content: prompt }],
+                        // gpt-oss models are reasoning models by default and can mix
+                        // chain-of-thought text into the response, which would break
+                        // the plain-JSON parsing every caller of this function does
+                        // (the same failure mode hit with an OpenRouter reasoning
+                        // model earlier in this project). Set defensively, before
+                        // ever seeing it actually break something in production.
+                        reasoning_effort: 'low',
                     }),
                 });
 

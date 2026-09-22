@@ -58,6 +58,30 @@ function fakeExtractionResponse(json) {
     return async () => ({ response: { text: () => JSON.stringify(json) } });
 }
 
+// Like fakeClientReturning, but client.actor().call() itself throws for the
+// first `failCallCount` invocations (simulating the crawler sub-actor
+// failing, not just returning nothing), then behaves normally after.
+function fakeClientWithCrawlerFailures(pageTextBySource, failCallCount) {
+    let callCount = 0;
+    return {
+        actor: () => ({
+            call: async (options) => {
+                callCount++;
+                if (callCount <= failCallCount) {
+                    throw new Error('Website Content Crawler run failed (simulated)');
+                }
+                return { defaultDatasetId: `dataset-${callCount}`, _startUrls: options.startUrls };
+            },
+        }),
+        dataset: () => ({
+            listItems: async () => {
+                const text = pageTextBySource.shift() ?? '';
+                return { items: text ? [{ markdown: text }] : [] };
+            },
+        }),
+    };
+}
+
 test('defaults to phdportal only when sourceKeys is not passed, same as before this feature existed', async () => {
     const client = fakeClientReturning([
         '[{"title":"Test Scholarship","link":null,"deadline":null,"description":"d","eligibility":"e"}]',
@@ -170,6 +194,87 @@ test('malformed LLM extraction JSON for one source does not crash the whole run'
 
     assert.equal(results.length, 1);
     assert.equal(results[0].title, 'Good One');
+});
+
+test('LLM call throwing for one source (e.g. a bad model name or exhausted rate limit) does not crash the whole run', async () => {
+    const client = fakeClientReturning([
+        'some page content',
+        'other page content',
+    ]);
+    let callIndex = 0;
+    const generateContentWithRetry = async () => {
+        callIndex++;
+        if (callIndex === 1) {
+            throw new Error('Groq call failed (404): model_not_found');
+        }
+        return { response: { text: () => JSON.stringify([{ title: 'Good One', link: null, deadline: null, description: 'd', eligibility: 'e' }]) } };
+    };
+
+    const results = await scrapeListings({
+        client,
+        generateContentWithRetry,
+        actorSetValue: null,
+        sourceKeys: ['phdportal', 'opportunitydesk'],
+    });
+
+    assert.equal(results.length, 1);
+    assert.equal(results[0].title, 'Good One');
+});
+
+test('the search-page crawler failing for one source does not crash the whole run', async () => {
+    // phdportal's crawler call throws (call #1); opportunitydesk's crawler
+    // call succeeds (call #2) and its search page has no detail links, so
+    // no enrichment crawl happens.
+    const client = fakeClientWithCrawlerFailures([
+        JSON.stringify([{ title: 'Still Works', link: null, deadline: null, description: 'd', eligibility: 'e' }]),
+    ], 1);
+    const generateContentWithRetry = fakeExtractionResponse([
+        { title: 'Still Works', link: null, deadline: null, description: 'd', eligibility: 'e' },
+    ]);
+
+    const results = await scrapeListings({
+        client,
+        generateContentWithRetry,
+        actorSetValue: null,
+        sourceKeys: ['phdportal', 'opportunitydesk'],
+    });
+
+    assert.equal(results.length, 1);
+    assert.equal(results[0].title, 'Still Works');
+});
+
+test('the detail-page enrichment crawler failing keeps summary-page data instead of losing the listings', async () => {
+    // Search-page crawl succeeds and returns one listing with a link (so
+    // enrichment is attempted); the enrichment crawler call then throws.
+    const client = fakeClientWithCrawlerFailures([
+        JSON.stringify([{ title: 'Has A Link', link: 'https://example.com/x', deadline: null, description: 'original', eligibility: 'original elig' }]),
+    ], 0);
+    // Make only the second client.actor().call() (the enrichment crawl) fail.
+    let actorCallCount = 0;
+    const originalCall = client.actor().call;
+    client.actor = () => ({
+        call: async (options) => {
+            actorCallCount++;
+            if (actorCallCount === 2) throw new Error('Website Content Crawler run failed (simulated)');
+            return originalCall(options);
+        },
+    });
+
+    const generateContentWithRetry = fakeExtractionResponse([
+        { title: 'Has A Link', link: 'https://example.com/x', deadline: null, description: 'original', eligibility: 'original elig' },
+    ]);
+
+    const results = await scrapeListings({
+        client,
+        generateContentWithRetry,
+        actorSetValue: null,
+        sourceKeys: ['phdportal'],
+    });
+
+    assert.equal(results.length, 1);
+    assert.equal(results[0].title, 'Has A Link');
+    assert.equal(results[0].description, 'original'); // kept, not lost
+    assert.equal(results[0].enriched, undefined); // enrichment did not happen
 });
 
 test('listingLimit caps results per source, not across the whole combined batch', async () => {

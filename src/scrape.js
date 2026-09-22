@@ -47,17 +47,26 @@ export function sourceKeysForEducationLevel(educationLevel) {
 }
 
 async function fetchAndExtractListings({ client, generateContentWithRetry, actorSetValue, source }) {
-    const contentCrawlerRun = await client.actor('apify/website-content-crawler').call({
-        startUrls: [{ url: source.startUrl }],
-        crawlerType: 'playwright:firefox',
-        maxCrawlPages: 1,
-        // Markdown output keeps [text](url) links, which plain text strips out and
-        // we need those links to visit each listing's own detail page.
-        saveMarkdown: true,
-        proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] },
-    });
-
-    const { items } = await client.dataset(contentCrawlerRun.defaultDatasetId).listItems();
+    let items;
+    try {
+        const contentCrawlerRun = await client.actor('apify/website-content-crawler').call({
+            startUrls: [{ url: source.startUrl }],
+            crawlerType: 'playwright:firefox',
+            maxCrawlPages: 1,
+            // Markdown output keeps [text](url) links, which plain text strips out and
+            // we need those links to visit each listing's own detail page.
+            saveMarkdown: true,
+            proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] },
+        });
+        ({ items } = await client.dataset(contentCrawlerRun.defaultDatasetId).listItems());
+    } catch (err) {
+        // The sub-actor call itself failing (site fully blocks it, proxy
+        // dies, Apify platform hiccup) is the same class of problem as it
+        // returning zero items below: this one source contributes nothing,
+        // not a reason to crash the whole run.
+        console.log(`Website Content Crawler failed for ${source.name}, skipping this source for this run: ${err.message}`);
+        return [];
+    }
 
     if (items.length === 0) {
         console.log(`Website Content Crawler returned no pages for ${source.name} — skipping this source for this run.`);
@@ -75,18 +84,23 @@ async function fetchAndExtractListings({ client, generateContentWithRetry, actor
         await actorSetValue(`SEARCH_PAGE_RAW_${source.name.toUpperCase()}`, pageText, { contentType: 'text/plain' });
     }
 
-    const extraction = await generateContentWithRetry(
-        `Here is the text/markdown content of a scholarship listing page (${source.description}). Extract every distinct scholarship/opportunity listing you can find as a JSON array. For each one include: title, link (the URL to the listing's own detail page, if one appears in the content, otherwise null), deadline (if stated), description (short summary), and eligibility (any stated requirements, as plain text). If a field isn't present, use null. Return ONLY the JSON array, no other text.\n\nPAGE CONTENT:\n${pageText.slice(0, 15000)}`,
-    );
-
-    const rawText = extraction.response.text() ?? '[]';
-
     let listings;
     try {
+        const extraction = await generateContentWithRetry(
+            `Here is the text/markdown content of a scholarship listing page (${source.description}). Extract every distinct scholarship/opportunity listing you can find as a JSON array. For each one include: title, link (the URL to the listing's own detail page, if one appears in the content, otherwise null), deadline (if stated), description (short summary), and eligibility (any stated requirements, as plain text). If a field isn't present, use null. Return ONLY the JSON array, no other text.\n\nPAGE CONTENT:\n${pageText.slice(0, 15000)}`,
+        );
+        const rawText = extraction.response.text() ?? '[]';
         const jsonMatch = rawText.match(/\[[\s\S]*\]/);
         listings = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
     } catch (err) {
-        console.log(`Could not parse LLM extraction output as JSON for ${source.name}, skipping this source for this run: ${err.message}`);
+        // Covers both a parse failure (bad JSON back from the LLM) and the
+        // call itself failing (rate limit exhausted, bad model name,
+        // network death) — either way this one source contributes nothing
+        // instead of taking down the whole run. One source failing already
+        // degraded gracefully for a parse error before this; now it does
+        // for a call failure too, the gap that let a single dead model name
+        // crash a run that had already scraped everything else.
+        console.log(`Could not extract listings for ${source.name}, skipping this source for this run: ${err.message}`);
         return [];
     }
 
@@ -102,16 +116,26 @@ async function enrichListings({ client, generateContentWithRetry, listings, enri
     console.log(`Fetching detail pages for ${toEnrich.length} ${sourceName} listing(s) to get richer eligibility text.`);
 
     const detailPagesText = new Map();
-    const detailCrawlerRun = await client.actor('apify/website-content-crawler').call({
-        startUrls: toEnrich.map((l) => ({ url: l.link })),
-        crawlerType: 'playwright:firefox',
-        maxCrawlPages: toEnrich.length,
-        saveMarkdown: true,
-        proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] },
-    });
-    const { items: detailItems } = await client.dataset(detailCrawlerRun.defaultDatasetId).listItems();
-    for (const item of detailItems) {
-        detailPagesText.set(item.url, item.markdown ?? item.text ?? '');
+    try {
+        const detailCrawlerRun = await client.actor('apify/website-content-crawler').call({
+            startUrls: toEnrich.map((l) => ({ url: l.link })),
+            crawlerType: 'playwright:firefox',
+            maxCrawlPages: toEnrich.length,
+            saveMarkdown: true,
+            proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] },
+        });
+        const { items: detailItems } = await client.dataset(detailCrawlerRun.defaultDatasetId).listItems();
+        for (const item of detailItems) {
+            detailPagesText.set(item.url, item.markdown ?? item.text ?? '');
+        }
+    } catch (err) {
+        // Enrichment is additive detail on top of listings we already have
+        // from the summary page. If the detail-page crawl itself fails,
+        // detailPagesText stays empty and every listing below falls through
+        // to "keep summary-page data" (detailText undefined), same as a
+        // per-listing enrichment failure already does, instead of losing
+        // every listing from this source over an enrichment-only failure.
+        console.log(`Website Content Crawler failed while enriching ${sourceName} listings, keeping summary-page data for all of them: ${err.message}`);
     }
 
     const enrichedListings = [];

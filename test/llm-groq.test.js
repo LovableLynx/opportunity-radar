@@ -50,6 +50,23 @@ test('sends the prompt and API key in the request', async () => {
     );
 });
 
+test('sets reasoning_effort low, so gpt-oss chain-of-thought text does not break callers\' JSON parsing', async () => {
+    let capturedOptions;
+    await withMockedFetch(
+        async (url, options) => {
+            capturedOptions = options;
+            return { ok: true, json: async () => ({ choices: [{ message: { content: 'ok' } }] }) };
+        },
+        async () => {
+            const generateContentWithRetry = makeGroqGenerateContent('fake-key', { minMsBetweenCalls: 0 });
+            await generateContentWithRetry('a prompt');
+
+            const body = JSON.parse(capturedOptions.body);
+            assert.equal(body.reasoning_effort, 'low');
+        },
+    );
+});
+
 test('retries on a 429 and succeeds on the next attempt', async () => {
     let callCount = 0;
     await withMockedFetch(

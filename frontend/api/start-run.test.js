@@ -89,3 +89,40 @@ test('a cvText right at the extraction limit is fine, one over is rejected', () 
     assert.equal(validateProfile(validProfile({ cvText: 'x'.repeat(20000) })), null);
     assert.notEqual(validateProfile(validProfile({ cvText: 'x'.repeat(20001) })), null);
 });
+
+test('regression: fieldOfStudy="hy" with gpaOrGrade="00" is rejected (a real garbage-input test caught this reaching a live, billed Actor run)', () => {
+    assert.notEqual(validateProfile(validProfile({ fieldOfStudy: 'hy', gpaOrGrade: '00' })), null);
+});
+
+test('a too-short or vowel-less fieldOfStudy/country is rejected as implausible', () => {
+    assert.notEqual(validateProfile(validProfile({ fieldOfStudy: 'hy' })), null);
+    assert.notEqual(validateProfile(validProfile({ fieldOfStudy: 'xkcd' })), null);
+    assert.notEqual(validateProfile(validProfile({ country: 'zzz' })), null);
+    // Short but real values (short names, common abbreviations) still pass.
+    assert.equal(validateProfile(validProfile({ fieldOfStudy: 'Art' })), null);
+    assert.equal(validateProfile(validProfile({ fieldOfStudy: 'Law' })), null);
+    assert.equal(validateProfile(validProfile({ country: 'UAE' })), null);
+    assert.equal(validateProfile(validProfile({ country: 'DR Congo' })), null);
+});
+
+test('gpaOrGrade must match a real grade shape: fraction, percentage, plain number in range, or a named classification', () => {
+    assert.equal(validateProfile(validProfile({ gpaOrGrade: '3.6/4.0' })), null);
+    assert.equal(validateProfile(validProfile({ gpaOrGrade: '85%' })), null);
+    assert.equal(validateProfile(validProfile({ gpaOrGrade: '3.6' })), null);
+    assert.equal(validateProfile(validProfile({ gpaOrGrade: 'First Class' })), null);
+    assert.equal(validateProfile(validProfile({ gpaOrGrade: 'Second Class Upper' })), null);
+    assert.equal(validateProfile(validProfile({ gpaOrGrade: 'CGPA 4.5' })), null);
+
+    assert.notEqual(validateProfile(validProfile({ gpaOrGrade: '00' })), null);
+    assert.notEqual(validateProfile(validProfile({ gpaOrGrade: '0' })), null);
+    assert.notEqual(validateProfile(validProfile({ gpaOrGrade: '-5' })), null);
+    assert.notEqual(validateProfile(validProfile({ gpaOrGrade: 'asdf' })), null);
+    assert.notEqual(validateProfile(validProfile({ gpaOrGrade: '9999' })), null);
+});
+
+test('an omitted or blank gpaOrGrade is fine (it is optional; the format check only applies when something was provided)', () => {
+    const { gpaOrGrade, ...profile } = validProfile();
+    assert.equal(validateProfile(profile), null);
+    assert.equal(validateProfile(validProfile({ gpaOrGrade: '' })), null);
+    assert.equal(validateProfile(validProfile({ gpaOrGrade: '   ' })), null);
+});

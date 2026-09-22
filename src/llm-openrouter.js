@@ -5,11 +5,16 @@
 // want a stronger model later. Matches generateContentWithRetry's exact
 // interface (a function returning { response: { text: () => string } }) so
 // it's a drop-in swap everywhere that interface is already used.
-// Gemma 4 31B, not the larger reasoning models, on purpose: every prompt in
-// this project asks for structured JSON back, and Gemma is one of the few
-// free models with reasoning off by default — no chance of chain-of-thought
-// text mixing into the response and breaking JSON parsing.
-const DEFAULT_MODEL = 'google/gemma-4-31b-it:free';
+// Gemma looked ideal on paper (reasoning off by default, so no chance of
+// chain-of-thought text breaking JSON parsing) but its free tier on
+// OpenRouter is routed through Google AI Studio as the upstream provider,
+// sharing a congested pool with every other free OpenRouter user hitting
+// Google-backed models — confirmed via a real 429 in testing, unrelated to
+// our own Gemini quota. Nemotron is NVIDIA's own hosted capacity, not
+// routed through Google, so it doesn't share that bottleneck. It defaults
+// to reasoning on, but the `reasoning: { enabled: false }` param below
+// handles that.
+const DEFAULT_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b:free';
 
 export function makeOpenRouterGenerateContent(apiKey, { model = DEFAULT_MODEL, minMsBetweenCalls = 2000 } = {}) {
     let lastCallAt = 0;

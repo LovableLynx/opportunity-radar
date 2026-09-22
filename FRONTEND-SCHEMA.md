@@ -52,11 +52,13 @@ found. This is a real example pulled from an actual run, not invented:
 
 ### Field meanings, for design purposes
 
-- **`source`** is `"phdportal"` by default. `"opportunitydesk"` also
-  appears if `ENABLE_OPPORTUNITY_DESK=1` is set on the Actor, off by
-  default since it's untested against a live run. Worth a small source
-  label/badge if both are ever active at once, so it's clear where a
-  listing came from.
+- **`source`** is `"bachelorsportal"`, `"mastersportal"`, or `"phdportal"`,
+  chosen automatically to match the profile's `educationLevel` (High school
+  and Bachelors both use Bachelorsportal). `"opportunitydesk"` also appears
+  if `ENABLE_OPPORTUNITY_DESK=1` is set on the Actor, off by default since
+  it's untested against a live run. Worth a small source label/badge, so
+  it's clear where a listing came from, especially once Opportunity Desk is
+  active alongside the level-matched portal.
 - **`eligibilityMatch`** is one of three values: `"Eligible"`, `"Partial"`,
   `"Not Eligible"`. This is probably the single most important thing to
   make visually obvious, a colored badge or similar.

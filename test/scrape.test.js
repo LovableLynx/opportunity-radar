@@ -5,7 +5,34 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { scrapeListings } from '../src/scrape.js';
+import { scrapeListings, sourceKeysForEducationLevel } from '../src/scrape.js';
+
+test('sourceKeysForEducationLevel picks bachelorsportal for Bachelors', () => {
+    assert.deepEqual(sourceKeysForEducationLevel('Bachelors'), ['bachelorsportal']);
+});
+
+test('sourceKeysForEducationLevel picks bachelorsportal for High school too, closest fit', () => {
+    assert.deepEqual(sourceKeysForEducationLevel('High school'), ['bachelorsportal']);
+});
+
+test('sourceKeysForEducationLevel picks mastersportal for Masters', () => {
+    assert.deepEqual(sourceKeysForEducationLevel('Masters'), ['mastersportal']);
+});
+
+test('sourceKeysForEducationLevel picks phdportal for PhD', () => {
+    assert.deepEqual(sourceKeysForEducationLevel('PhD'), ['phdportal']);
+});
+
+test('sourceKeysForEducationLevel is case-insensitive', () => {
+    assert.deepEqual(sourceKeysForEducationLevel('masters'), ['mastersportal']);
+    assert.deepEqual(sourceKeysForEducationLevel('MASTERS'), ['mastersportal']);
+});
+
+test('sourceKeysForEducationLevel falls back to phdportal for unknown/empty level, unchanged default behavior', () => {
+    assert.deepEqual(sourceKeysForEducationLevel(''), ['phdportal']);
+    assert.deepEqual(sourceKeysForEducationLevel(undefined), ['phdportal']);
+    assert.deepEqual(sourceKeysForEducationLevel('Something Else'), ['phdportal']);
+});
 
 function fakeClientReturning(pageTextBySource) {
     let callCount = 0;

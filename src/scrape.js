@@ -13,12 +13,38 @@ export const SOURCES = {
         startUrl: 'https://www.phdportal.com/search/scholarships/phd',
         description: 'PhDportal scholarship listing page',
     },
+    bachelorsportal: {
+        name: 'bachelorsportal',
+        startUrl: 'https://www.bachelorsportal.com/search/scholarships/bachelor',
+        description: 'Bachelorsportal scholarship listing page',
+    },
+    mastersportal: {
+        name: 'mastersportal',
+        startUrl: 'https://www.mastersportal.com/search/scholarships/master',
+        description: 'Mastersportal scholarship listing page',
+    },
     opportunitydesk: {
         name: 'opportunitydesk',
         startUrl: 'https://opportunitydesk.org/category/scholarships/',
         description: 'Opportunity Desk scholarships category page',
     },
 };
+
+// PhDportal, Bachelorsportal, and Mastersportal are sibling sites in the same
+// network (studyportals.com), same structure, one per education level. Only
+// scraping PhDportal meant Bachelors/Masters students were matched against a
+// pool of exclusively PhD scholarships — technically harmless (the education
+// level check correctly rejects them) but useless for that student. This
+// picks the right site(s) for the profile's actual level instead.
+export function sourceKeysForEducationLevel(educationLevel) {
+    const level = (educationLevel || '').toLowerCase();
+    if (level === 'high school' || level === 'bachelors') return ['bachelorsportal'];
+    if (level === 'masters') return ['mastersportal'];
+    if (level === 'phd') return ['phdportal'];
+    // Unknown/unset level: fall back to the original default rather than
+    // guessing, so behavior for anyone not passing a level stays unchanged.
+    return ['phdportal'];
+}
 
 async function fetchAndExtractListings({ client, generateContentWithRetry, actorSetValue, source }) {
     const contentCrawlerRun = await client.actor('apify/website-content-crawler').call({

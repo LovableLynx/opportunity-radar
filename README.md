@@ -86,9 +86,16 @@ verifying logic changes before spending a real call to confirm end to end.
 ## Where things stand
 
 - [x] Phase 0 — project scaffold
-- [x] Phase 1 — scraping PhDportal via Apify's Website Content Crawler
-      (needed to get past its bot detection) + Gemini extraction, including
-      following each listing's detail page for real eligibility text
+- [x] Phase 1 — scraping via Apify's Website Content Crawler (needed to get
+      past bot detection on these sites) + LLM extraction, including
+      following each listing's detail page for real eligibility text. Picks
+      the right studyportals.com site for the student's own education level
+      (Bachelorsportal, Mastersportal, or PhDportal) instead of always
+      scraping PhD listings regardless of who's asking — added after
+      noticing Bachelors/Masters profiles were being matched against an
+      entirely PhD-only pool. Bachelorsportal/Mastersportal not yet
+      confirmed against a real live run, same caveat as Opportunity Desk
+      below.
 - [x] Phase 2 — eligibility matching: deterministic checks (deadline,
       nationality, education level) verified with local unit tests, and
       confirmed end to end against a real Gemini call — a real Nigerian

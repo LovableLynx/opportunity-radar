@@ -1,7 +1,7 @@
 import { Actor } from 'apify';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { makeOpenRouterGenerateContent } from './llm-openrouter.js';
-import { scrapeListings } from './scrape.js';
+import { scrapeListings, sourceKeysForEducationLevel } from './scrape.js';
 import { matchListing } from './match.js';
 import { searchForListingEvidence } from './search.js';
 import { checkAlumniMentions } from './alumni-signal.js';
@@ -91,16 +91,22 @@ if (input.compareListingA && input.compareListingB) {
 
     const isTestRun = process.env.OPPORTUNITY_RADAR_TEST_MODE === '1';
 
+    // Pick the scholarship-portal site matching the student's own education
+    // level (Bachelorsportal/Mastersportal/PhDportal — sibling sites, same
+    // network, one per level) instead of always scraping PhD listings
+    // regardless of who's asking. See sourceKeysForEducationLevel in scrape.js.
+    const levelSourceKeys = sourceKeysForEducationLevel(educationLevel);
+
     // Opportunity Desk is off by default: it's Cloudflare-protected, and
-    // unlike PhDportal (confirmed working live through Website Content
-    // Crawler), it's never actually been tested against our pipeline. Set
-    // ENABLE_OPPORTUNITY_DESK=1 once there's quota to spare for a real test.
-    // enrichLimitPerSource stays 5 total either way, split across whichever
-    // sources are active, so turning this on doesn't silently double the
-    // LLM call budget for a run.
+    // unlike the *portal sites (confirmed working live through Website
+    // Content Crawler), it's never actually been tested against our
+    // pipeline. Set ENABLE_OPPORTUNITY_DESK=1 once there's quota to spare
+    // for a real test. enrichLimitPerSource stays 5 total either way, split
+    // across whichever sources are active, so turning this on doesn't
+    // silently double the LLM call budget for a run.
     const sourceKeys = process.env.ENABLE_OPPORTUNITY_DESK === '1'
-        ? ['phdportal', 'opportunitydesk']
-        : ['phdportal'];
+        ? [...levelSourceKeys, 'opportunitydesk']
+        : levelSourceKeys;
 
     // Env-gated flags have silently failed to take effect before (set in
     // the console but not actually baked into the build that ran, with no

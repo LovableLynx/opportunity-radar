@@ -57,9 +57,11 @@ test.describe('CV PDF upload', () => {
     await page.setInputFiles('#cvFile', TEST_CV_PATH);
 
     // pdf.js runs async in the browser; wait for the success status message
-    // rather than a fixed sleep.
-    await expect(page.locator('#cv-file-status')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('#cv-file-status')).toContainText('read successfully');
+    // rather than a fixed sleep. Timeout is generous (20s) since this
+    // flaked under parallel load in the full suite — pdf.js's CDN module
+    // and worker script both have to load before extraction even starts,
+    // and that's shared network/CPU time when many tests run at once.
+    await expect(page.locator('#cv-file-status')).toContainText('read successfully', { timeout: 20000 });
     await expect(page.locator('#error-cvFile')).toBeHidden();
   });
 

@@ -135,14 +135,20 @@ export default async function handler(req, res) {
         );
 
         if (!apifyRes.ok) {
+            // Apify's raw error text could include internal account/actor
+            // details not meant for a public caller — logged server-side
+            // for real debugging, but the response to the caller stays
+            // generic.
             const text = await apifyRes.text();
-            res.status(apifyRes.status).json({ error: `Could not start the Actor: ${text}` });
+            console.error(`Apify run start failed (${apifyRes.status}): ${text}`);
+            res.status(apifyRes.status).json({ error: 'Could not start the Actor run.' });
             return;
         }
 
         const data = await apifyRes.json();
         res.status(200).json({ runId: data.data.id });
     } catch (err) {
-        res.status(500).json({ error: `Could not reach Apify: ${err.message}` });
+        console.error(`Could not reach Apify: ${err.message}`);
+        res.status(500).json({ error: 'Could not reach Apify.' });
     }
 }

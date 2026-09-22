@@ -133,6 +133,11 @@ test.describe('production site audit', () => {
     expect(response.status()).toBeLessThan(500);
   });
 
+  test('/api/check-run on production rejects a runId containing path/query injection characters', async ({ request }) => {
+    const response = await request.get(`${PROD_URL}/api/check-run?runId=${encodeURIComponent('../../etc/passwd')}`);
+    expect(response.status()).toBe(400);
+  });
+
   test('GET on /api/start-run is rejected (POST-only), not silently accepted', async ({ request }) => {
     const response = await request.get(`${PROD_URL}/api/start-run`);
     expect(response.status()).toBe(405);

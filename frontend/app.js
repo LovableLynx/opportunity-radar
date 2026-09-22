@@ -55,6 +55,62 @@ document.getElementById('btn-error-retry').addEventListener('click', () => {
   document.getElementById('profile-form').requestSubmit();
 });
 
+// CV PDF upload: extracted client-side with pdf.js so the file never has to
+// leave the browser as a binary, and there's no new backend dependency for
+// something a browser can already do natively. Extracted text is stashed
+// here and takes priority over the plain-text textarea on submit, since
+// uploading a file is a more deliberate signal than whatever's left in the
+// textarea from a previous attempt. If extraction fails (scanned/image PDF,
+// corrupt file), the user still has the textarea as a fallback, exactly the
+// flow that already existed before this.
+let extractedCvText = null;
+
+document.getElementById('cvFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  const status = document.getElementById('cv-file-status');
+  const error = document.getElementById('error-cvFile');
+  status.hidden = true;
+  error.hidden = true;
+  extractedCvText = null;
+
+  if (!file) return;
+
+  if (!window.pdfjsLib) {
+    error.textContent = "Couldn't load the PDF reader. Paste your CV as text below instead.";
+    error.hidden = false;
+    return;
+  }
+
+  status.textContent = `Reading ${file.name}…`;
+  status.hidden = false;
+
+  try {
+    const buffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    const pageTexts = [];
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const content = await page.getTextContent();
+      pageTexts.push(content.items.map((item) => item.str).join(' '));
+    }
+    const text = pageTexts.join('\n').trim();
+
+    if (!text) {
+      status.hidden = true;
+      error.textContent = "Couldn't find any text in that PDF (it may be a scanned image). Paste your CV as text below instead.";
+      error.hidden = false;
+      return;
+    }
+
+    extractedCvText = text;
+    status.textContent = `${file.name} read successfully (${text.length.toLocaleString()} characters).`;
+  } catch (err) {
+    status.hidden = true;
+    error.textContent = "Couldn't read that PDF. Paste your CV as text below instead.";
+    error.hidden = false;
+  }
+});
+
 document.getElementById('btn-demo').addEventListener('click', async () => {
   showView('loading');
   document.getElementById('loading-headline').textContent = 'Loading the example run…';
@@ -79,6 +135,7 @@ function clearFieldErrors() {
     document.getElementById(id).closest('.field').classList.remove('has-error');
     document.getElementById(`error-${id}`).hidden = true;
   }
+  document.getElementById('error-cvFile').hidden = true;
 }
 
 function validateForm() {
@@ -107,7 +164,7 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
     country: document.getElementById('country').value,
     fundingNeeded: document.getElementById('fundingNeeded').checked,
     gpaOrGrade: document.getElementById('gpaOrGrade').value || undefined,
-    cvText: document.getElementById('cvText').value || undefined,
+    cvText: extractedCvText || document.getElementById('cvText').value || undefined,
   };
 
   showView('loading');

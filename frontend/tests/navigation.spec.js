@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { join } from 'node:path';
+
+const TEST_CV_PATH = join(process.cwd(), 'tests', 'fixtures', 'test-cv.pdf');
 
 test.describe('landing and navigation', () => {
   test('landing page shows both entry points', async ({ page }) => {
@@ -43,6 +46,39 @@ test.describe('landing and navigation', () => {
     await page.getByRole('button', { name: 'Run Opportunity Radar' }).click();
 
     await expect(page.locator('#form-error-banner')).toBeHidden();
+  });
+});
+
+test.describe('CV PDF upload', () => {
+  test('uploading a PDF extracts its text client-side via pdf.js', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Check my eligibility' }).click();
+
+    await page.setInputFiles('#cvFile', TEST_CV_PATH);
+
+    // pdf.js runs async in the browser; wait for the success status message
+    // rather than a fixed sleep.
+    await expect(page.locator('#cv-file-status')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#cv-file-status')).toContainText('read successfully');
+    await expect(page.locator('#error-cvFile')).toBeHidden();
+  });
+
+  test('a non-PDF or unreadable file shows an error, not a crash', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Check my eligibility' }).click();
+
+    // A text file disguised with a .pdf-ish selection isn't possible via
+    // setInputFiles' accept filtering in a real browser, but the input has
+    // no server-side enforcement, so feed pdf.js outright invalid PDF bytes
+    // and confirm it fails soft instead of throwing an unhandled error.
+    await page.setInputFiles('#cvFile', {
+      name: 'not-a-real.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from('this is not a pdf'),
+    });
+
+    await expect(page.locator('#error-cvFile')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#error-cvFile')).toContainText("Couldn't read that PDF");
   });
 });
 

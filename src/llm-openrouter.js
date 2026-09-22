@@ -5,7 +5,7 @@
 // want a stronger model later. Matches generateContentWithRetry's exact
 // interface (a function returning { response: { text: () => string } }) so
 // it's a drop-in swap everywhere that interface is already used.
-const DEFAULT_MODEL = 'nvidia/nemotron-3-ultra:free';
+const DEFAULT_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b:free';
 
 export function makeOpenRouterGenerateContent(apiKey, { model = DEFAULT_MODEL, minMsBetweenCalls = 2000 } = {}) {
     let lastCallAt = 0;
@@ -26,6 +26,11 @@ export function makeOpenRouterGenerateContent(apiKey, { model = DEFAULT_MODEL, m
                     body: JSON.stringify({
                         model,
                         messages: [{ role: 'user', content: prompt }],
+                        // This model defaults to reasoning mode on, which mixes
+                        // chain-of-thought into the response and would break the
+                        // plain-JSON parsing every caller of this function does.
+                        // Explicitly disabling it keeps the response clean.
+                        reasoning: { enabled: false },
                     }),
                 });
 
@@ -43,6 +48,9 @@ export function makeOpenRouterGenerateContent(apiKey, { model = DEFAULT_MODEL, m
                 }
 
                 const data = await res.json();
+                // Some models return content and reasoning as separate fields
+                // even with reasoning disabled — only .content is the actual
+                // answer callers expect to parse (often as JSON).
                 const text = data.choices?.[0]?.message?.content ?? '';
                 return { response: { text: () => text } };
             } catch (err) {

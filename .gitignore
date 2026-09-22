@@ -3,3 +3,5 @@ node_modules/
 storage/
 apify_storage/
 *.log
+frontend/test-results/
+graphify-out/

@@ -76,4 +76,62 @@ test.describe('demo run', () => {
     await page.getByRole('button', { name: 'Edit profile' }).click();
     await expect(page.locator('#view-form')).toBeVisible();
   });
+
+  test('a listing with a javascript: URL as its link does not render as a clickable XSS payload', async ({ page }) => {
+    // Regression test for a real finding: escapeHtml() guards against HTML
+    // injection (< > & etc.) but not against a malicious URL *scheme* in an
+    // href — "javascript:alert(1)" contains none of those characters, so it
+    // passed through escapeHtml completely unchanged and would have
+    // rendered as a live, clickable XSS payload. r.link comes from scraped
+    // third-party listing pages via an LLM extraction step, so a
+    // compromised or malicious source page planting a javascript: URL as
+    // the "link" field is a real path for this to reach a visitor, not a
+    // contrived one.
+    await page.goto('/');
+
+    let dialogFired = false;
+    page.on('dialog', async (dialog) => {
+      dialogFired = true;
+      await dialog.dismiss();
+    });
+
+    await page.evaluate(() => renderResults([
+      {
+        title: 'Malicious Listing',
+        link: 'javascript:alert(document.cookie)',
+        eligibilityMatch: 'Eligible',
+        trustRisk: 'Low Risk',
+      },
+    ], null, false));
+
+    const card = page.locator('.listing-card').first();
+    await expect(card).toContainText('Malicious Listing');
+
+    // The title must render as plain text, never a clickable link, when the
+    // link's scheme isn't http/https.
+    await expect(card.locator('a')).toHaveCount(0);
+
+    // Actually click where the link would have been, to prove nothing fires.
+    await card.locator('.listing-title').click();
+    expect(dialogFired).toBe(false);
+  });
+
+  test('a listing with a genuine https link still renders as a real, clickable link', async ({ page }) => {
+    await page.goto('/');
+
+    await page.evaluate(() => renderResults([
+      {
+        title: 'Real Listing',
+        link: 'https://example.com/scholarship',
+        eligibilityMatch: 'Eligible',
+        trustRisk: 'Low Risk',
+      },
+    ], null, false));
+
+    const link = page.locator('.listing-card').first().locator('a');
+    await expect(link).toHaveCount(1);
+    await expect(link).toHaveAttribute('href', 'https://example.com/scholarship');
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(link).toHaveAttribute('rel', 'noopener');
+  });
 });

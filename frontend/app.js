@@ -370,6 +370,25 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// escapeHtml only guards against HTML injection (< > & etc.), not against a
+// malicious URL *scheme* in an href — "javascript:alert(1)" contains none of
+// those characters, so it passes through escapeHtml completely unchanged and
+// would render as a live, clickable XSS payload. r.link comes from scraped
+// third-party listing pages via an LLM extraction step, so a compromised or
+// malicious source page planting a javascript: URL as the "link" field is a
+// real, not hypothetical, path for this to reach a real visitor's browser.
+// Only http/https are ever legitimate for "go view this scholarship
+// online", so anything else is treated as absent rather than rendered.
+function safeHttpUrl(url) {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url, window.location.href);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function renderResults(results, digest, isDemo) {
   document.getElementById('demo-banner').hidden = !isDemo;
 
@@ -393,8 +412,9 @@ function renderResults(results, digest, isDemo) {
     const card = document.createElement('div');
     card.className = 'listing-card';
 
-    const titleHtml = r.link
-      ? `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener">${escapeHtml(r.title)}</a>`
+    const safeLink = safeHttpUrl(r.link);
+    const titleHtml = safeLink
+      ? `<a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener">${escapeHtml(r.title)}</a>`
       : escapeHtml(r.title);
 
     let html = `

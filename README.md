@@ -40,28 +40,30 @@ npm install
 cp .env.example .env   # fill in your own keys, never commit .env
 ```
 
-You'll need your own Gemini API key (Google AI Studio). Ask in the group if
-you don't have one yet. Trust scoring's web-search evidence doesn't need any
-credentials at all (see below).
+You'll need your own Groq API key (console.groq.com), that's the default
+provider. Ask in the group if you don't have one yet. Trust scoring's
+web-search evidence doesn't need any credentials at all (see below).
 
-Heads up on the Gemini free tier: it's capped at 5 requests per minute and 20
-requests per day per key. Our pipeline paces calls at least 13 seconds apart
-to respect the per-minute limit, but the daily cap is real and does the math
-for you whether you like it or not. One run costs roughly `1 + ENRICH_LIMIT +
-(number of listings matched)` calls, so a full 20-listing run with
-`ENRICH_LIMIT=20` needs around 41 calls, which can't fit in a single day on
-this tier no matter how you space them out. `ENRICH_LIMIT` in `src/scrape.js`
-is set to 5 for this reason, since that comfortably fits one full run per key
-per day. Set `OPPORTUNITY_RADAR_TEST_MODE=1` as an env var to cap runs to 3
-listings total for even cheaper iteration while testing logic changes.
+Groq was made the default after two earlier providers both broke a live run.
+Gemini's free tier is capped at 5 requests per minute and 20 requests per day
+per key, too small to survive a real run once search-evidence relevance
+filtering and matching are both drawing from it, one run costs roughly
+`1 + ENRICH_LIMIT + (number of listings matched)` calls, so a full
+20-listing run needs around 41, which can't fit in a single day on that tier
+no matter how you space them out. OpenRouter's free tier is a single
+50-requests/day cap shared across every free model on the account, and it
+ran out mid-run in production once, crashing the Actor before
+`src/match.js` was hardened to degrade instead of crash on a failed LLM
+call. Groq's free tier is rate-limited per-model per-minute instead of one
+shared daily cap, and has held up across full runs so far.
 
-If Gemini's free tier runs out and paying isn't an option (Google Cloud
-Billing isn't available in every country), set `LLM_PROVIDER=openrouter` and
-`OPENROUTER_API_KEY`, or `LLM_PROVIDER=groq` and `GROQ_API_KEY`, instead, see
-`.env.example`. Both have real free models with no billing requirement at
-all (`src/llm-openrouter.js`, `src/llm-groq.js`), and match the same
-interface everything else already expects, so nothing else about the
-pipeline changes.
+If you want to use Gemini or OpenRouter instead, see `.env.example`, set
+`LLM_PROVIDER=gemini` plus `GOOGLE_API_KEY`, or `LLM_PROVIDER=openrouter`
+plus `OPENROUTER_API_KEY`. `ENRICH_LIMIT` in `src/scrape.js` is set to 5
+specifically for Gemini's daily cap, comfortably fits one full run per key
+per day on that tier. Set `OPPORTUNITY_RADAR_TEST_MODE=1` as an env var to
+cap runs to 3 listings total for even cheaper iteration while testing logic
+changes, regardless of provider.
 
 Prefer Groq over OpenRouter if you have a choice. OpenRouter's free tier is
 a single 50-requests/day cap shared across every free model on the account,

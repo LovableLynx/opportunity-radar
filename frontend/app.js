@@ -46,25 +46,60 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
   runLoadingMessages();
 
   try {
-    const res = await fetch('/api/run-radar', {
+    const startRes = await fetch('/api/start-run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(profile),
     });
-    const data = await res.json();
+    const startData = await startRes.json();
 
-    if (!res.ok) {
-      showError(data.error || 'The Actor run failed.');
+    if (!startRes.ok) {
+      showError(startData.error || 'Could not start the run.');
       return;
     }
 
-    const results = data.results || [];
-    const digest = buildLocalDigest(results);
-    renderResults(results, digest, false);
+    await pollRunUntilDone(startData.runId);
   } catch (err) {
     showError('Could not reach Opportunity Radar. ' + err.message);
   }
 });
+
+// A real run takes several minutes, so poll for status instead of holding
+// one request open the whole time — Vercel's serverless functions don't
+// allow requests anywhere near that long.
+async function pollRunUntilDone(runId) {
+  const POLL_INTERVAL_MS = 5000;
+  const MAX_POLL_MS = 20 * 60 * 1000; // generous ceiling, a real run has taken ~10 minutes
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < MAX_POLL_MS) {
+    if (views.loading.hidden) return; // user navigated away, stop polling
+
+    const res = await fetch(`/api/check-run?runId=${encodeURIComponent(runId)}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      showError(data.error || 'Could not check run status.');
+      return;
+    }
+
+    if (data.status === 'SUCCEEDED') {
+      const results = data.results || [];
+      const digest = buildLocalDigest(results);
+      renderResults(results, digest, false);
+      return;
+    }
+
+    if (data.status === 'FAILED' || data.status === 'ABORTED' || data.status === 'TIMED-OUT') {
+      showError(data.error || `The run ended unexpectedly (${data.status}).`);
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+  }
+
+  showError('This run is taking longer than expected. Check back in a few minutes, or try again.');
+}
 
 // The live run takes several minutes; cycle through honest stage messages
 // instead of a static spinner with no context.

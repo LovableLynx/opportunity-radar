@@ -121,6 +121,16 @@ if (input.compareListingA && input.compareListingB) {
         ? [...levelSourceKeys, 'opportunitydesk']
         : levelSourceKeys;
 
+    // A stale Apify build silently ran old code for hours on 2026-09-22 (a
+    // Docker layer cache hit on `COPY . ./` reused the previous image
+    // instead of picking up new commits, despite the build showing
+    // "Succeeded"), with no way to tell from the logs alone. This line pins
+    // an exact source identifier to every run, so "is this actually running
+    // what I just pushed" is a log line, not a guess: bump BUILD_MARKER any
+    // time you need to force-verify a deploy actually landed.
+    const BUILD_MARKER = '2026-09-22-groq-default';
+    console.log(`Build marker: ${BUILD_MARKER}`);
+
     // Env-gated flags have silently failed to take effect before (set in
     // the console but not actually baked into the build that ran, with no
     // visible sign why), so every run logs exactly what it saw, checkable

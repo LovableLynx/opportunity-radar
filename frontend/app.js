@@ -248,15 +248,31 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
     cvText: cvTextToSend,
   };
 
-  showView('loading');
-  runLoadingMessages();
-
   try {
     const startRes = await fetch('/api/start-run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(profile),
     });
+
+    // A 400 means the server rejected the input itself (see
+    // frontend/api/start-run.js's validateProfile), not that a run failed.
+    // That's a "fix this field" problem, not a "something broke" problem,
+    // so it belongs back on the form with a clear message, not on the
+    // generic error screen (view-error), which is for real run/network
+    // failures. Checked before switching to the loading view at all, so the
+    // user never even sees a spinner for something that never started.
+    if (startRes.status === 400) {
+      const startData = await startRes.json();
+      const banner = document.getElementById('form-error-banner');
+      banner.textContent = startData.error || 'Please check your answers and try again.';
+      banner.hidden = false;
+      return;
+    }
+
+    showView('loading');
+    runLoadingMessages();
+
     const startData = await startRes.json();
 
     if (!startRes.ok) {

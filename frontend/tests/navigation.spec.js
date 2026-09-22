@@ -47,6 +47,40 @@ test.describe('landing and navigation', () => {
 
     await expect(page.locator('#form-error-banner')).toBeHidden();
   });
+
+  test('a server-side validation rejection (e.g. implausible field of study) sends the user back to the form with a clear message, not the generic error screen', async ({ page }) => {
+    // Regression test: previously, a 400 from /api/start-run's own
+    // validation (see start-run.js's validateProfile, which catches things
+    // client-side checks can't, like fieldOfStudy="hy") sent the user
+    // through the loading spinner and into the generic "We couldn't
+    // complete your search" error screen — the same screen used for a real
+    // Actor crash. That looks like something broke, not "please fix this
+    // field", which is misleading for a case that's entirely the user's to
+    // fix. This confirms it now stays on the form with a specific message,
+    // and never shows the loading view at all for a request that never
+    // really started.
+    await page.route('**/api/start-run', (route) => {
+      route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'fieldOfStudy does not look like a real field of study.' }),
+      });
+    });
+
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Check my eligibility' }).click();
+
+    await page.selectOption('#educationLevel', 'Bachelors');
+    await page.fill('#fieldOfStudy', 'hy');
+    await page.fill('#country', 'Nigeria');
+    await page.getByRole('button', { name: 'Run Opportunity Radar' }).click();
+
+    await expect(page.locator('#view-form')).toBeVisible();
+    await expect(page.locator('#view-loading')).toBeHidden();
+    await expect(page.locator('#view-error')).toBeHidden();
+    await expect(page.locator('#form-error-banner')).toBeVisible();
+    await expect(page.locator('#form-error-banner')).toContainText('does not look like a real field of study');
+  });
 });
 
 test.describe('CV PDF upload', () => {

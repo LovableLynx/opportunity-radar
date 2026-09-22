@@ -53,6 +53,13 @@ set to 5 for this reason — comfortably fits one full run per key per day. Set
 `OPPORTUNITY_RADAR_TEST_MODE=1` as an env var to cap runs to 3 listings
 total for even cheaper iteration while testing logic changes.
 
+If Gemini's free tier runs out and paying isn't an option (Google Cloud
+Billing isn't available in every country), set `LLM_PROVIDER=openrouter` and
+`OPENROUTER_API_KEY` instead — see `.env.example`. OpenRouter has real free
+models with no billing requirement at all (`src/llm-openrouter.js`), and
+matches the same interface everything else already expects, so nothing else
+about the pipeline changes.
+
 ## Running it locally
 
 ```bash

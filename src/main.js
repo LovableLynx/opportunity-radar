@@ -1,5 +1,6 @@
 import { Actor } from 'apify';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { makeOpenRouterGenerateContent } from './llm-openrouter.js';
 import { scrapeListings } from './scrape.js';
 import { matchListing } from './match.js';
 import { searchForListingEvidence } from './search.js';
@@ -69,11 +70,22 @@ if (input.compareListingA && input.compareListingB) {
         };
     }
 
-    const generateContentWithRetry = makeGenerateContentWithRetry(process.env.GOOGLE_API_KEY);
+    // OpenRouter is an alternative to Gemini for when Google Cloud Billing
+    // isn't available at all (some countries can't add a billing account,
+    // which blocks paying for higher Gemini quota even when we want to).
+    // Set LLM_PROVIDER=openrouter and OPENROUTER_API_KEY to switch; Gemini
+    // stays the default so nothing changes for anyone not using this.
+    const useOpenRouter = process.env.LLM_PROVIDER === 'openrouter';
 
-    // Falls back to the main key if no second key is set, so this works whether
-    // or not GOOGLE_API_KEY_SEARCH is configured.
-    const generateContentForSearch = process.env.GOOGLE_API_KEY_SEARCH
+    const generateContentWithRetry = useOpenRouter
+        ? makeOpenRouterGenerateContent(process.env.OPENROUTER_API_KEY)
+        : makeGenerateContentWithRetry(process.env.GOOGLE_API_KEY);
+
+    // Falls back to the main key/provider if no second Gemini key is set, so
+    // this works whether or not GOOGLE_API_KEY_SEARCH is configured. Not
+    // relevant when on OpenRouter, since its free tier isn't as tightly
+    // capped per-key as Gemini's free tier is.
+    const generateContentForSearch = (!useOpenRouter && process.env.GOOGLE_API_KEY_SEARCH)
         ? makeGenerateContentWithRetry(process.env.GOOGLE_API_KEY_SEARCH)
         : generateContentWithRetry;
 

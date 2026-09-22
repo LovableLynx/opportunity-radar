@@ -10,7 +10,7 @@ real scholarship, grant and admission listings and tells them what they're
 eligible for and what's missing, and it separately checks each listing for
 scam red flags using real evidence, not just a vibe.
 
-**Live site:** [opportunity-radar-nu-mauve.vercel.app](https://opportunity-radar-nu-mauve.vercel.app)
+**Live site:** [opportunity-radar-by-edubridge.vercel.app](https://opportunity-radar-by-edubridge.vercel.app)
 
 ## Monetization (Pay-Per-Event)
 

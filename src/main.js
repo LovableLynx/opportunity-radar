@@ -164,6 +164,14 @@ if (input.compareListingA && input.compareListingB) {
         };
         results.push(record);
         await Actor.pushData(record);
+
+        // Pay-per-event billing: one charge per listing that's been fully
+        // matched against the profile AND trust-scored, since that pairing —
+        // not just scraping a listing — is what this Actor actually does
+        // differently. "listing-processed" must exist in the Actor's PPE
+        // pricing configuration on Apify Console for this to charge anything;
+        // locally and on non-monetized runs it's a harmless no-op.
+        await Actor.charge({ eventName: 'listing-processed' });
     }
 
     // Digest is a pure add-on: if it throws for any reason, log it and move on

@@ -10,6 +10,18 @@ real scholarship/grant/admission listings and tells them what they're eligible
 for and what's missing, and it separately checks each listing for scam red
 flags using real evidence (not just a vibe).
 
+## Monetization (Pay-Per-Event)
+
+The Actor charges one `listing-processed` event per listing that's been fully
+matched against the profile *and* trust-scored — that pairing is the whole
+point of this Actor, so it's what gets billed, not just scraping. Compare
+mode (`compareListingA`/`compareListingB`) does no scraping or scoring and
+never charges anything.
+
+The event name is wired into `src/main.js` via `Actor.charge()`; the actual
+USD price per event is set separately in Apify Console under the Actor's
+Monetization settings, not in this repo.
+
 Three PDFs live in this repo, each for a different purpose:
 
 - `Opportunity-Radar-Status-Update.pdf` — **start here.** Where the build

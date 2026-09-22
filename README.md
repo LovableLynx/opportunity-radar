@@ -57,10 +57,18 @@ listings total for even cheaper iteration while testing logic changes.
 
 If Gemini's free tier runs out and paying isn't an option (Google Cloud
 Billing isn't available in every country), set `LLM_PROVIDER=openrouter` and
-`OPENROUTER_API_KEY` instead, see `.env.example`. OpenRouter has real free
-models with no billing requirement at all (`src/llm-openrouter.js`), and
-matches the same interface everything else already expects, so nothing else
-about the pipeline changes.
+`OPENROUTER_API_KEY`, or `LLM_PROVIDER=groq` and `GROQ_API_KEY`, instead, see
+`.env.example`. Both have real free models with no billing requirement at
+all (`src/llm-openrouter.js`, `src/llm-groq.js`), and match the same
+interface everything else already expects, so nothing else about the
+pipeline changes.
+
+Prefer Groq over OpenRouter if you have a choice. OpenRouter's free tier is
+a single 50-requests/day cap shared across every free model on the account,
+and it ran out mid-run in production once, which crashed the Actor before
+`src/match.js` was hardened to degrade instead of crash on a failed LLM
+call. Groq's free tier is rate-limited per-model per-minute instead of one
+shared daily cap, and holds up better across a full run.
 
 ## Running it locally
 
@@ -77,10 +85,11 @@ listing.
 npm test
 ```
 
-115 tests across the `test/` directory, covering matching, trust scoring,
+132 tests across the `test/` directory, covering matching, trust scoring,
 search evidence parsing, digest, urgency, cross-listing pattern detection,
-learned patterns, CV evidence, action steps, and compare mode. None of them
-call a real API, so run them freely without touching quota. Useful for
+learned patterns, CV evidence, action steps, compare mode, and the
+OpenRouter/Groq provider wrappers. None of them call a real API, so run them
+freely without touching quota. Useful for
 verifying logic changes before spending a real call to confirm end to end.
 
 ## Where things stand

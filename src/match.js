@@ -143,16 +143,23 @@ Return ONLY a JSON object with:
 - "reasoning": one sentence explaining your call
 - "actionSteps": an array of concrete, specific next steps the student could take to strengthen their application against the unclear criteria (empty array if hasUnresolvedCriteria is false). Each step should be something the student can actually do, not a restatement of the problem. For example, not "research experience is unclear" but "add any research-adjacent coursework or a supervised project to your application, even if it wasn't formally labeled research".`;
 
-    const extraction = await generateContentWithRetry(prompt);
-    const rawText = extraction.response.text() ?? '{}';
-
     let llmResult;
     try {
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        llmResult = JSON.parse(jsonMatch ? jsonMatch[0] : '{}');
+        const extraction = await generateContentWithRetry(prompt);
+        const rawText = extraction.response.text() ?? '{}';
+        try {
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            llmResult = JSON.parse(jsonMatch ? jsonMatch[0] : '{}');
+        } catch (err) {
+            const preview = rawText.length === 0 ? '(empty response)' : rawText.slice(0, 300);
+            console.log(`Could not parse match interpretation for "${listing.title}" (length=${rawText.length}): ${err.message} | raw: ${preview}`);
+            llmResult = { hasUnresolvedCriteria: false, missingOrUnclear: [], reasoning: 'Interpretation unavailable.', actionSteps: [] };
+        }
     } catch (err) {
-        const preview = rawText.length === 0 ? '(empty response)' : rawText.slice(0, 300);
-        console.log(`Could not parse match interpretation for "${listing.title}" (length=${rawText.length}): ${err.message} | raw: ${preview}`);
+        // The call itself failed after exhausting retries (rate limit,
+        // network death, provider outage). Same degrade as a parse failure:
+        // this one listing loses LLM interpretation, the run keeps going.
+        console.log(`LLM call failed for "${listing.title}", interpretation unavailable: ${err.message}`);
         llmResult = { hasUnresolvedCriteria: false, missingOrUnclear: [], reasoning: 'Interpretation unavailable.', actionSteps: [] };
     }
 

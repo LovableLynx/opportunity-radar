@@ -160,3 +160,22 @@ test('malformed LLM JSON response falls back gracefully instead of crashing', as
     assert.equal(result.hardRequirementsMet, true);
     assert.equal(result.eligibilityMatch, 'Eligible'); // fallback default
 });
+
+test('LLM call throwing (e.g. rate limit exhausted after retries) degrades gracefully instead of crashing the run', async () => {
+    const listing = {
+        title: 'Some scholarship',
+        deadline: null,
+        eligibility: 'Nationality: Any. Some ambiguous preference text.',
+    };
+    const profile = { educationLevel: 'PhD', country: 'Nigeria', fieldOfStudy: 'Computer Science' };
+
+    const throwingGenerateContent = async () => {
+        throw new Error('Groq call failed (429): rate limit exceeded');
+    };
+
+    const result = await matchListing(listing, profile, throwingGenerateContent);
+
+    assert.equal(result.hardRequirementsMet, true);
+    assert.equal(result.eligibilityMatch, 'Eligible'); // fallback default, run keeps going
+    assert.equal(result.llmInterpretation, 'Interpretation unavailable.');
+});

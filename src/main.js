@@ -1,6 +1,7 @@
 import { Actor } from 'apify';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { makeOpenRouterGenerateContent } from './llm-openrouter.js';
+import { makeGroqGenerateContent } from './llm-groq.js';
 import { scrapeListings, sourceKeysForEducationLevel } from './scrape.js';
 import { matchListing } from './match.js';
 import { searchForListingEvidence } from './search.js';
@@ -70,22 +71,29 @@ if (input.compareListingA && input.compareListingB) {
         };
     }
 
-    // OpenRouter is an alternative to Gemini for when Google Cloud Billing
-    // isn't available at all (some countries can't add a billing account,
-    // which blocks paying for higher Gemini quota even when we want to).
-    // Set LLM_PROVIDER=openrouter and OPENROUTER_API_KEY to switch; Gemini
-    // stays the default so nothing changes for anyone not using this.
+    // OpenRouter and Groq are both alternatives to Gemini for when Google
+    // Cloud Billing isn't available at all (some countries can't add a
+    // billing account, which blocks paying for higher Gemini quota even when
+    // we want to). Set LLM_PROVIDER=openrouter or LLM_PROVIDER=groq plus the
+    // matching API key to switch; Gemini stays the default so nothing
+    // changes for anyone not using this. Groq was added after OpenRouter's
+    // free tier (50 requests/day, shared across every free model on the
+    // account) got exhausted mid-run in production and crashed the Actor,
+    // see llm-groq.js for why Groq holds up better across a full run.
     const useOpenRouter = process.env.LLM_PROVIDER === 'openrouter';
+    const useGroq = process.env.LLM_PROVIDER === 'groq';
 
-    const generateContentWithRetry = useOpenRouter
-        ? makeOpenRouterGenerateContent(process.env.OPENROUTER_API_KEY)
-        : makeGenerateContentWithRetry(process.env.GOOGLE_API_KEY);
+    const generateContentWithRetry = useGroq
+        ? makeGroqGenerateContent(process.env.GROQ_API_KEY)
+        : useOpenRouter
+            ? makeOpenRouterGenerateContent(process.env.OPENROUTER_API_KEY)
+            : makeGenerateContentWithRetry(process.env.GOOGLE_API_KEY);
 
     // Falls back to the main key/provider if no second Gemini key is set, so
     // this works whether or not GOOGLE_API_KEY_SEARCH is configured. Not
-    // relevant when on OpenRouter, since its free tier isn't as tightly
+    // relevant when on OpenRouter or Groq, since neither is as tightly
     // capped per-key as Gemini's free tier is.
-    const generateContentForSearch = (!useOpenRouter && process.env.GOOGLE_API_KEY_SEARCH)
+    const generateContentForSearch = (!useOpenRouter && !useGroq && process.env.GOOGLE_API_KEY_SEARCH)
         ? makeGenerateContentWithRetry(process.env.GOOGLE_API_KEY_SEARCH)
         : generateContentWithRetry;
 
@@ -112,7 +120,7 @@ if (input.compareListingA && input.compareListingB) {
     // the console but not actually baked into the build that ran, with no
     // visible sign why), so every run logs exactly what it saw, checkable
     // in the run log instead of guessed at.
-    console.log(`Config: LLM_PROVIDER=${JSON.stringify(process.env.LLM_PROVIDER)} (using ${useOpenRouter ? 'OpenRouter' : 'Gemini'}), OPPORTUNITY_RADAR_TEST_MODE=${JSON.stringify(process.env.OPPORTUNITY_RADAR_TEST_MODE)} (isTestRun=${isTestRun}), ENABLE_OPPORTUNITY_DESK=${JSON.stringify(process.env.ENABLE_OPPORTUNITY_DESK)}, ENABLE_ALUMNI_SIGNAL=${JSON.stringify(process.env.ENABLE_ALUMNI_SIGNAL)}, GOOGLE_API_KEY_SEARCH set=${Boolean(process.env.GOOGLE_API_KEY_SEARCH)}`);
+    console.log(`Config: LLM_PROVIDER=${JSON.stringify(process.env.LLM_PROVIDER)} (using ${useGroq ? 'Groq' : useOpenRouter ? 'OpenRouter' : 'Gemini'}), OPPORTUNITY_RADAR_TEST_MODE=${JSON.stringify(process.env.OPPORTUNITY_RADAR_TEST_MODE)} (isTestRun=${isTestRun}), ENABLE_OPPORTUNITY_DESK=${JSON.stringify(process.env.ENABLE_OPPORTUNITY_DESK)}, ENABLE_ALUMNI_SIGNAL=${JSON.stringify(process.env.ENABLE_ALUMNI_SIGNAL)}, GOOGLE_API_KEY_SEARCH set=${Boolean(process.env.GOOGLE_API_KEY_SEARCH)}`);
 
     const listings = await scrapeListings({
         client,

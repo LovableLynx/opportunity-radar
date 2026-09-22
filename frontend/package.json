@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "vercel dev",
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:api": "node --test api/*.test.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

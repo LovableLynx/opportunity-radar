@@ -198,16 +198,36 @@ scraping or LLM calls happen in this mode, it's instant.
 
 ## How to call it
 
-The Actor is deployed at `lovablelynx/opportunity-radar` on Apify. Calling
-it from a frontend means using the Apify API with your own Apify API token,
-something like:
+**Live reference implementation:** [opportunity-radar-nu-mauve.vercel.app](https://opportunity-radar-nu-mauve.vercel.app)
+(source in `frontend/`) — worth looking at directly, it's the working example
+of everything below.
+
+The Actor is deployed at `lovablelynx/opportunity-radar` on Apify. A full run
+currently takes several minutes (scraping + enrichment + matching + trust
+scoring), which is far longer than a serverless function is normally allowed
+to stay open — so don't call the sync endpoint and wait on it in one request.
+Instead, start the run and poll for its status:
 
 ```
-POST https://api.apify.com/v2/acts/lovablelynx~opportunity-radar/run-sync-get-dataset-items?token=YOUR_TOKEN
+POST https://api.apify.com/v2/acts/lovablelynx~opportunity-radar/runs?token=YOUR_TOKEN
 Body: { "educationLevel": "PhD", "fieldOfStudy": "...", "country": "...", "fundingNeeded": true }
+Returns: { "data": { "id": "<runId>", ... } }
 ```
 
-Heads up on timing: a full run currently takes several minutes (scraping +
-enrichment + matching + trust scoring, each step pacing its own API calls).
-The frontend needs a loading state that accounts for this, not something
-built for an instant response.
+Then poll every few seconds:
+
+```
+GET https://api.apify.com/v2/actor-runs/<runId>?token=YOUR_TOKEN
+Returns: { "data": { "status": "RUNNING" | "SUCCEEDED" | "FAILED" | ..., "defaultDatasetId": "..." } }
+```
+
+Once `status` is `SUCCEEDED`, fetch the results:
+
+```
+GET https://api.apify.com/v2/datasets/<defaultDatasetId>/items?token=YOUR_TOKEN
+```
+
+`frontend/api/start-run.js` and `frontend/api/check-run.js` are the working
+implementation of exactly this — start there if wiring this up from scratch.
+The frontend needs a loading state that accounts for the multi-minute wait,
+not something built for an instant response.

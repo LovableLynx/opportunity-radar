@@ -10,6 +10,8 @@ real scholarship/grant/admission listings and tells them what they're eligible
 for and what's missing, and it separately checks each listing for scam red
 flags using real evidence (not just a vibe).
 
+**Live site:** [opportunity-radar-nu-mauve.vercel.app](https://opportunity-radar-nu-mauve.vercel.app)
+
 ## Monetization (Pay-Per-Event)
 
 The Actor charges one `listing-processed` event per listing that's been fully

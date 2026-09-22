@@ -45,3 +45,33 @@ test.describe('landing and navigation', () => {
     await expect(page.locator('#form-error-banner')).toBeHidden();
   });
 });
+
+test.describe('theme toggle', () => {
+  test('defaults to system, switches to dark and light, and persists across reload', async ({ page }) => {
+    await page.goto('/');
+
+    const html = page.locator('html');
+    const systemBtn = page.locator('.theme-option[data-theme-choice="system"]');
+    const darkBtn = page.locator('.theme-option[data-theme-choice="dark"]');
+    const lightBtn = page.locator('.theme-option[data-theme-choice="light"]');
+
+    await expect(systemBtn).toHaveAttribute('aria-checked', 'true');
+    await expect(html).not.toHaveAttribute('data-theme', /.+/);
+
+    await darkBtn.click();
+    await expect(html).toHaveAttribute('data-theme', 'dark');
+    await expect(darkBtn).toHaveAttribute('aria-checked', 'true');
+
+    // Persists across a reload (localStorage), and applies before first
+    // paint so there's no flash of the wrong theme.
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('.theme-option[data-theme-choice="dark"]')).toHaveAttribute('aria-checked', 'true');
+
+    await lightBtn.click();
+    await expect(html).toHaveAttribute('data-theme', 'light');
+
+    await systemBtn.click();
+    await expect(html).not.toHaveAttribute('data-theme', /.+/);
+  });
+});

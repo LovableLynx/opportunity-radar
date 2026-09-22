@@ -1,3 +1,38 @@
+// Theme: light, dark, or system (follows the OS setting). "system" means no
+// data-theme attribute at all, since style.css already falls back to
+// prefers-color-scheme when data-theme isn't set. Persisted per browser via
+// localStorage; a private window or blocked storage just falls back to
+// system every load, which is a reasonable default, not a broken one.
+function getStoredTheme() {
+  try {
+    const stored = localStorage.getItem('theme');
+    return stored === 'light' || stored === 'dark' ? stored : 'system';
+  } catch (err) {
+    return 'system';
+  }
+}
+
+function applyTheme(theme) {
+  if (theme === 'light' || theme === 'dark') {
+    document.documentElement.setAttribute('data-theme', theme);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  try {
+    if (theme === 'system') localStorage.removeItem('theme');
+    else localStorage.setItem('theme', theme);
+  } catch (err) {}
+
+  document.querySelectorAll('.theme-option').forEach((btn) => {
+    btn.setAttribute('aria-checked', String(btn.dataset.themeChoice === theme));
+  });
+}
+
+document.querySelectorAll('.theme-option').forEach((btn) => {
+  btn.addEventListener('click', () => applyTheme(btn.dataset.themeChoice));
+});
+applyTheme(getStoredTheme());
+
 const views = {
   landing: document.getElementById('view-landing'),
   form: document.getElementById('view-form'),
@@ -35,7 +70,7 @@ document.getElementById('btn-demo').addEventListener('click', async () => {
 
 // Field-level validation, matching the Figma 01B validation-error screen:
 // an inline message under each invalid required field, plus a banner at
-// the top of the form. Required fields only — optional fields never block.
+// the top of the form. Required fields only, optional fields never block.
 const REQUIRED_FIELDS = ['educationLevel', 'fieldOfStudy', 'country'];
 
 function clearFieldErrors() {
@@ -103,7 +138,7 @@ document.getElementById('btn-no-results-retry').addEventListener('click', () => 
 });
 
 // A real run takes several minutes, so poll for status instead of holding
-// one request open the whole time — Vercel's serverless functions don't
+// one request open the whole time, since Vercel's serverless functions don't
 // allow requests anywhere near that long.
 async function pollRunUntilDone(runId) {
   const POLL_INTERVAL_MS = 5000;
@@ -147,7 +182,7 @@ function runLoadingMessages() {
     'Scanning listings…',
     'Checking eligibility against your profile…',
     'Gathering trust evidence…',
-    'Still working — this step paces itself deliberately…',
+    'Still working, this step paces itself deliberately…',
   ];
   let i = 0;
   headline.textContent = stages[0];

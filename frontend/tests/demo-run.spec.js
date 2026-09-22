@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // The demo path is the only one that doesn't depend on the live Apify
-// backend (/api/start-run, /api/check-run) — it just fetches the committed
+// backend (/api/start-run, /api/check-run), it just fetches the committed
 // demo-data.json and renders it, so it's the one flow we can test fully
 // end-to-end without mocking or a running backend.
 

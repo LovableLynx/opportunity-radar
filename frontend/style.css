@@ -85,12 +85,41 @@ code, .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
   color: var(--ink);
 }
 .brand-mark { color: var(--accent); flex-shrink: 0; }
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
 .topbar-link {
   font-size: 13.5px;
   color: var(--muted);
   text-decoration: none;
 }
 .topbar-link:hover { color: var(--accent-ink); }
+
+.theme-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  padding: 2px;
+  gap: 2px;
+}
+.theme-option {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 100px;
+  padding: 5px 11px;
+  cursor: pointer;
+}
+.theme-option:hover { color: var(--ink); }
+.theme-option[aria-checked="true"] {
+  background: var(--accent);
+  color: var(--paper);
+}
 
 main { padding-inline: 20px; }
 
@@ -135,7 +164,7 @@ main { padding-inline: 20px; }
   transition: transform 0.08s ease, background 0.15s ease;
 }
 .btn:active { transform: scale(0.98); }
-.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary { background: var(--accent); color: var(--paper); }
 .btn-primary:hover { background: var(--accent-ink); }
 .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
 .btn-ghost:hover { border-color: var(--accent); color: var(--accent-ink); }

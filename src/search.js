@@ -88,7 +88,10 @@ Which of these results are genuinely about this specific opportunity (not just p
         // answer, not "zero relevant results" — treat it as a failure so it
         // falls back to unfiltered candidates instead of silently discarding
         // every result.
-        if (!jsonMatch) throw new Error(`No JSON array found in response: ${rawText.slice(0, 200)}`);
+        if (!jsonMatch) {
+            const preview = rawText.length === 0 ? '(empty response)' : rawText.slice(0, 300);
+            throw new Error(`No JSON array found in response (length=${rawText.length}): ${preview}`);
+        }
         const relevantIndexes = JSON.parse(jsonMatch[0]);
         return candidates.filter((_, i) => relevantIndexes.includes(i));
     } catch (err) {

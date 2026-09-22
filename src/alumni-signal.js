@@ -47,7 +47,10 @@ Return ONLY a JSON object with:
         const result = await generateContentWithRetry(prompt);
         const rawText = result.response.text() ?? '';
         const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error(`No JSON object found in response: ${rawText.slice(0, 200)}`);
+        if (!jsonMatch) {
+            const preview = rawText.length === 0 ? '(empty response)' : rawText.slice(0, 300);
+            throw new Error(`No JSON object found in response (length=${rawText.length}): ${preview}`);
+        }
         const parsed = JSON.parse(jsonMatch[0]);
         return {
             alumniMentionsFound: Boolean(parsed.alumniMentionsFound),

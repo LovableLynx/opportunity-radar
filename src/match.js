@@ -151,7 +151,8 @@ Return ONLY a JSON object with:
         const jsonMatch = rawText.match(/\{[\s\S]*\}/);
         llmResult = JSON.parse(jsonMatch ? jsonMatch[0] : '{}');
     } catch (err) {
-        console.log(`Could not parse match interpretation for "${listing.title}": ${err.message}`);
+        const preview = rawText.length === 0 ? '(empty response)' : rawText.slice(0, 300);
+        console.log(`Could not parse match interpretation for "${listing.title}" (length=${rawText.length}): ${err.message} | raw: ${preview}`);
         llmResult = { hasUnresolvedCriteria: false, missingOrUnclear: [], reasoning: 'Interpretation unavailable.', actionSteps: [] };
     }
 

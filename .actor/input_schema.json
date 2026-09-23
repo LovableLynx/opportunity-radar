@@ -91,11 +91,18 @@
       "description": "The number or grade itself, matching the format picked above: CGPA → just the number (e.g. 4.5); Percentage → just the number (e.g. 72); Classification → e.g. First Class, Second Class Upper; WAEC/NECO → e.g. \"English: B3, Mathematics: B2\"; Other → any format, e.g. 8/10.",
       "nullable": true
     },
+    "cvFile": {
+      "title": "CV upload (optional, PDF only)",
+      "type": "string",
+      "editor": "fileupload",
+      "description": "Upload your CV as a PDF and its text is extracted automatically. If both this and CV content (text) below are provided, the uploaded PDF takes priority, same as the website.",
+      "nullable": true
+    },
     "cvText": {
-      "title": "CV content (optional)",
+      "title": "CV content (optional, plain text)",
       "type": "string",
       "editor": "textarea",
-      "description": "Plain text of the student's CV. When provided, ambiguous eligibility criteria (e.g. 'research experience preferred') are checked against real CV content instead of left unconfirmed. Extract text from a PDF/DOCX before sending, this field expects plain text, not a file.",
+      "description": "Plain text of the student's CV, used only if no PDF is uploaded above. When provided, ambiguous eligibility criteria (e.g. 'research experience preferred') are checked against real CV content instead of left unconfirmed.",
       "nullable": true
     }
   },

@@ -13,6 +13,7 @@ import { detectCrossListingPatterns } from './cross-listing-patterns.js';
 import { loadLearnedPatterns, saveLearnedPatterns, patternsFromPhrases } from './learned-patterns.js';
 import { compareListings } from './compare-listings.js';
 import { composeGpaOrGrade } from './gpa-format.js';
+import { extractPdfText } from './pdf-extract.js';
 
 await Actor.init();
 
@@ -34,7 +35,35 @@ if (input.compareListingA && input.compareListingB) {
     }
     await Actor.exit();
 } else {
-    const { educationLevel = '', fieldOfStudy = '', country = '', fundingNeeded = true, gpaFormat = '', gpaOrGrade = null, cvText = null } = input;
+    const { educationLevel = '', fieldOfStudy = '', country = '', fundingNeeded = true, gpaFormat = '', gpaOrGrade = null, cvFile = null, cvText = null } = input;
+
+    // cvFile (Apify Console upload / direct API) is a separate entry point
+    // from the website's own PDF handling, which extracts text client-side
+    // in the browser via pdf.js before ever reaching the Actor. This mirrors
+    // that same extraction server-side, so a CV uploaded directly to the
+    // Actor is used for real instead of silently ignored. cvFile's value is
+    // a URL to the uploaded file (Apify's fileupload editor convention);
+    // when present it takes priority over cvText, matching the website's
+    // own extracted-PDF-beats-pasted-text priority rule.
+    let resolvedCvText = cvText;
+    if (cvFile) {
+        try {
+            const pdfResponse = await fetch(cvFile);
+            if (!pdfResponse.ok) {
+                console.log(`Could not download the uploaded CV file (${pdfResponse.status}), falling back to pasted CV text if any.`);
+            } else {
+                const buffer = Buffer.from(await pdfResponse.arrayBuffer());
+                const { text, error } = await extractPdfText(buffer);
+                if (error) {
+                    console.log(`CV PDF extraction failed, falling back to pasted CV text if any: ${error}`);
+                } else {
+                    resolvedCvText = text;
+                }
+            }
+        } catch (err) {
+            console.log(`Could not process the uploaded CV file, falling back to pasted CV text if any: ${err.message}`);
+        }
+    }
 
     // The Actor's input form (Console, direct API, MCP) is a separate entry
     // point from the website and previously had zero GPA validation at all —
@@ -179,7 +208,7 @@ if (input.compareListingA && input.compareListingB) {
     const results = [];
 
     for (const listing of listings) {
-        const match = await matchListing(listing, profile, generateContentWithRetry, cvText);
+        const match = await matchListing(listing, profile, generateContentWithRetry, resolvedCvText);
 
         // Search evidence is only worth fetching for listings a student could
         // actually pursue — no point checking the trust of something already

@@ -12,9 +12,10 @@
     "eval:match": "node eval/run-match-eval.js"
   },
   "dependencies": {
-    "apify": "^3.2.6",
+    "@anthropic-ai/sdk": "^0.32.1",
     "@google/generative-ai": "^0.21.0",
-    "@anthropic-ai/sdk": "^0.32.1"
+    "apify": "^3.2.6",
+    "pdfjs-dist": "^6.3.289"
   },
   "engines": {
     "node": ">=18.0.0"

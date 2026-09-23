@@ -88,9 +88,11 @@
         </div>
 
         <div class="field">
-          <label for="country">Country</label>
-          <input type="text" id="country" placeholder="e.g. Nigeria" required>
-          <p class="field-error" id="error-country" hidden>Please enter your country.</p>
+          <label for="country">Your country (not the scholarship's country)</label>
+          <select id="country" required>
+            <option value="" disabled selected>Select your country</option>
+          </select>
+          <p class="field-error" id="error-country" hidden>Please select your country.</p>
         </div>
 
         <div class="field field-checkbox">
@@ -169,6 +171,7 @@
 
 </main>
 
+<script src="countries.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

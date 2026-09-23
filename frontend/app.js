@@ -258,6 +258,17 @@ function clearFieldErrors() {
   document.getElementById('error-cvFile').hidden = true;
 }
 
+// Populate the country dropdown from countries.js (loaded as a plain global
+// before this script). A dropdown means a student can only ever submit a
+// real country, no more free-text gibberish like "Nifrd" slipping past the
+// plausibility heuristics below.
+for (const name of COUNTRIES) {
+  const option = document.createElement('option');
+  option.value = name;
+  option.textContent = name;
+  document.getElementById('country').appendChild(option);
+}
+
 // Live feedback as the student types or leaves a field, instead of only
 // finding out on submit (or worse, only after a server round-trip).
 document.getElementById('fieldOfStudy').addEventListener('blur', (e) => {
@@ -265,11 +276,10 @@ document.getElementById('fieldOfStudy').addEventListener('blur', (e) => {
   if (message) showFieldError('fieldOfStudy', message);
   else if (e.target.value.trim()) clearFieldError('fieldOfStudy');
 });
-document.getElementById('country').addEventListener('blur', (e) => {
-  const message = plausibleTextError(e.target.value, 'country');
-  if (message) showFieldError('country', message);
-  else if (e.target.value.trim()) clearFieldError('country');
-});
+// No blur-time plausibility check for country: it's now a <select> of real
+// countries only (see countries.js), so free-text gibberish like "Nifrd"
+// can no longer be entered in the first place.
+document.getElementById('country').addEventListener('change', () => clearFieldError('country'));
 document.getElementById('gpaOrGrade').addEventListener('blur', (e) => {
   const message = plausibleGpaError(e.target.value);
   if (message) showFieldError('gpaOrGrade', message);
@@ -277,7 +287,7 @@ document.getElementById('gpaOrGrade').addEventListener('blur', (e) => {
 });
 // Clear an error as soon as the student starts fixing that field, rather
 // than making them wait for another blur to see it go away.
-for (const id of ['fieldOfStudy', 'country', 'gpaOrGrade']) {
+for (const id of ['fieldOfStudy', 'gpaOrGrade']) {
   document.getElementById(id).addEventListener('input', () => clearFieldError(id));
 }
 
@@ -295,12 +305,6 @@ function validateForm() {
   const fieldOfStudyError = plausibleTextError(document.getElementById('fieldOfStudy').value, 'field of study');
   if (fieldOfStudyError) {
     showFieldError('fieldOfStudy', fieldOfStudyError);
-    hasError = true;
-  }
-
-  const countryError = plausibleTextError(document.getElementById('country').value, 'country');
-  if (countryError) {
-    showFieldError('country', countryError);
     hasError = true;
   }
 

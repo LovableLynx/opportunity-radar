@@ -6,7 +6,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { searchForListingEvidence } from '../src/search.js';
+import { searchForListingEvidence, checkPartnerSitePresence, VERIFICATION_PARTNERS } from '../src/search.js';
 
 function ddgResult(targetUrl, title, snippet) {
     const encoded = encodeURIComponent(targetUrl);
@@ -174,4 +174,93 @@ test('malformed LLM JSON response falls back to unfiltered results', async () =>
     global.fetch = originalFetch;
 
     assert.equal(result.independentResultsFound, true);
+});
+
+// checkPartnerSitePresence: whether a listing genuinely appears on a
+// verification-partner site (Scholar Africa, Opportunity Desk), used as
+// positive trust evidence in trust.js.
+
+test('an unknown partner key returns null without making any request', async () => {
+    const originalFetch = global.fetch;
+    let fetchCalled = false;
+    global.fetch = async () => { fetchCalled = true; return { ok: true, text: async () => '' }; };
+
+    const result = await checkPartnerSitePresence({ title: 'Any Scholarship' }, 'not-a-real-partner');
+
+    global.fetch = originalFetch;
+    assert.equal(result, null);
+    assert.equal(fetchCalled, false);
+});
+
+test('a genuine result from the partner domain, confirmed relevant, is found: true', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = mockFetchReturningHtml(
+        ddgResult('https://scholar.africa/scholarships/daad-study-scholarships', 'DAAD Study Scholarships', 'Verified listing'),
+    );
+    const generateContentWithRetry = fakeRelevanceFilter([0]);
+
+    const result = await checkPartnerSitePresence(
+        { title: 'DAAD Study Scholarships' },
+        'scholar.africa',
+        { generateContentWithRetry },
+    );
+
+    global.fetch = originalFetch;
+    assert.deepEqual(result, { found: true, partnerName: 'Scholar Africa' });
+});
+
+test('a result from a different domain (not the partner site) does not count, even if returned', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = mockFetchReturningHtml(
+        ddgResult('https://example.org/some-other-page', 'Some Other Page', 'Unrelated'),
+    );
+
+    const result = await checkPartnerSitePresence({ title: 'Any Scholarship' }, 'opportunitydesk.org');
+
+    global.fetch = originalFetch;
+    assert.deepEqual(result, { found: false, partnerName: 'Opportunity Desk' });
+});
+
+test('zero candidates from the partner site short-circuits to found: false without calling the LLM', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = mockFetchReturningHtml('');
+    let llmCalled = false;
+    const generateContentWithRetry = async () => { llmCalled = true; return { response: { text: () => '[]' } }; };
+
+    const result = await checkPartnerSitePresence(
+        { title: 'Any Scholarship' },
+        'scholar.africa',
+        { generateContentWithRetry },
+    );
+
+    global.fetch = originalFetch;
+    assert.equal(result.found, false);
+    assert.equal(llmCalled, false);
+});
+
+test('a network error returns null rather than counting as "not found"', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = async () => { throw new Error('network down'); };
+
+    const result = await checkPartnerSitePresence({ title: 'Any Scholarship' }, 'scholar.africa');
+
+    global.fetch = originalFetch;
+    assert.equal(result, null);
+});
+
+test('a non-ok response returns null rather than counting as "not found"', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = async () => ({ ok: false, status: 429 });
+
+    const result = await checkPartnerSitePresence({ title: 'Any Scholarship' }, 'opportunitydesk.org');
+
+    global.fetch = originalFetch;
+    assert.equal(result, null);
+});
+
+test('VERIFICATION_PARTNERS exposes both configured partners by hostname key', () => {
+    assert.ok(VERIFICATION_PARTNERS['scholar.africa']);
+    assert.ok(VERIFICATION_PARTNERS['opportunitydesk.org']);
+    assert.equal(VERIFICATION_PARTNERS['scholar.africa'].hostname, 'scholar.africa');
+    assert.equal(VERIFICATION_PARTNERS['opportunitydesk.org'].hostname, 'opportunitydesk.org');
 });

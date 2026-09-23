@@ -135,3 +135,88 @@ test('trustRisk labels never claim certainty the evidence does not support', () 
     // "confirmed legitimate" — this is the honesty fix from the review.
     assert.ok(!result.trustEvidence.some((e) => /verified|confirmed legitimate/i.test(e)));
 });
+
+// verifiedOnPartnerSite: a listing genuinely found on a site that manually
+// verifies every listing it publishes (Scholar Africa, Opportunity Desk) is
+// real positive evidence, offsetting weaker absence-of-evidence signals.
+
+test('a listing found on a verification partner site reduces the score', () => {
+    const listing = { title: 'Some Listing', description: null, eligibility: null };
+    const partnerSiteEvidence = [{ found: true, partnerName: 'Scholar Africa' }];
+
+    const withPartner = scoreListing(listing, null, [], partnerSiteEvidence);
+    const withoutPartner = scoreListing(listing, null, [], null);
+
+    assert.ok(withPartner.trustScore < withoutPartner.trustScore);
+    assert.ok(withPartner.trustEvidence.some((e) => /verified on Scholar Africa/i.test(e)));
+});
+
+test('a partner-site offset never pushes the score below zero', () => {
+    // An already-clean listing (no other signals triggered) plus a partner
+    // verification would otherwise go negative — a risk score has no
+    // meaningful negative value.
+    const listing = {
+        title: 'Very Clean Listing',
+        description: 'text',
+        eligibility: 'Nationality: Any.',
+    };
+    const partnerSiteEvidence = [{ found: true, partnerName: 'Scholar Africa' }];
+
+    const result = scoreListing(listing, null, [], partnerSiteEvidence);
+
+    assert.equal(result.trustScore, 0);
+});
+
+test('not found on any partner site does not penalize the listing', () => {
+    const listing = { title: 'Some Listing', description: 'text', eligibility: 'text' };
+    const partnerSiteEvidence = [
+        { found: false, partnerName: 'Scholar Africa' },
+        { found: false, partnerName: 'Opportunity Desk' },
+    ];
+
+    const result = scoreListing(listing, null, [], partnerSiteEvidence);
+    const baseline = scoreListing(listing, null, [], null);
+
+    assert.equal(result.trustScore, baseline.trustScore);
+});
+
+test('found on multiple partner sites still only counts once, not doubled', () => {
+    const listing = { title: 'Well Known Listing', description: null, eligibility: null };
+    const foundOnBoth = [
+        { found: true, partnerName: 'Scholar Africa' },
+        { found: true, partnerName: 'Opportunity Desk' },
+    ];
+    const foundOnOne = [
+        { found: true, partnerName: 'Scholar Africa' },
+        { found: false, partnerName: 'Opportunity Desk' },
+    ];
+
+    const scoreBoth = scoreListing(listing, null, [], foundOnBoth).trustScore;
+    const scoreOne = scoreListing(listing, null, [], foundOnOne).trustScore;
+
+    assert.equal(scoreBoth, scoreOne);
+});
+
+test('a genuine scam pattern still dominates even with partner-site verification', () => {
+    // The offset should never be strong enough to erase an actual red flag
+    // on its own — a real scam listing shouldn't be able to launder itself
+    // to Low Risk just by also turning up somewhere else.
+    const listing = {
+        title: 'Suspicious Listing',
+        description: 'Send a $50 processing fee to claim your award.',
+        eligibility: null,
+    };
+    const partnerSiteEvidence = [{ found: true, partnerName: 'Scholar Africa' }];
+
+    const result = scoreListing(listing, null, [], partnerSiteEvidence);
+
+    assert.notEqual(result.trustRisk, 'Low Risk');
+});
+
+test('no partnerSiteEvidence argument at all behaves exactly as before this feature existed', () => {
+    const listing = { title: 'X', description: 'text', eligibility: 'text' };
+    const withThreeArgs = scoreListing(listing, null, []);
+    const withFourArgsNull = scoreListing(listing, null, [], null);
+
+    assert.deepEqual(withThreeArgs, withFourArgsNull);
+});

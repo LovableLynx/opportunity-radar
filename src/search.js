@@ -151,3 +151,59 @@ export async function searchForListingEvidence(listing, { sourceHostname, genera
         candidates,
     };
 }
+
+// Verification partners: sites that manually check every listing they
+// publish against the issuing institution before it goes live (per their own
+// published verification process), rather than just aggregating scraped
+// text. A listing genuinely turning up on one of these is real positive
+// trust evidence — stronger than "some page on the internet mentions this",
+// since these sites specifically vouch for legitimacy, not just existence.
+export const VERIFICATION_PARTNERS = {
+    'scholar.africa': {
+        name: 'Scholar Africa',
+        hostname: 'scholar.africa',
+    },
+    'opportunitydesk.org': {
+        name: 'Opportunity Desk',
+        hostname: 'opportunitydesk.org',
+    },
+};
+
+/**
+ * Checks whether a listing genuinely appears on a specific verification
+ * partner site, via a site-scoped DuckDuckGo search reusing the same
+ * candidate-extraction and LLM-relevance-filtering as searchForListingEvidence.
+ * Returns null on any failure (network, non-ok response) — "couldn't check"
+ * is not evidence of absence, so this never counts against a listing, only
+ * ever for it.
+ */
+export async function checkPartnerSitePresence(listing, partnerKey, { generateContentWithRetry } = {}) {
+    const partner = VERIFICATION_PARTNERS[partnerKey];
+    if (!partner) return null;
+
+    const query = `site:${partner.hostname} ${listing.title}`;
+    const url = `${SEARCH_URL}?q=${encodeURIComponent(query)}`;
+
+    let response;
+    try {
+        response = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+    } catch (err) {
+        console.log(`Partner-site search failed for "${listing.title}" on ${partner.name}: ${err.message}`);
+        return null;
+    }
+
+    if (!response.ok) {
+        console.log(`Partner-site search returned ${response.status} for "${listing.title}" on ${partner.name} — treating as unchecked.`);
+        return null;
+    }
+
+    const html = await response.text();
+    const candidates = extractCandidateResults(html)
+        .filter((c) => hostnameOf(c.url) === partner.hostname);
+    if (candidates.length === 0) {
+        return { found: false, partnerName: partner.name };
+    }
+
+    const relevant = await filterRelevantResults(listing, candidates, generateContentWithRetry);
+    return { found: relevant.length > 0, partnerName: partner.name };
+}

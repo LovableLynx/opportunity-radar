@@ -41,6 +41,15 @@ const SIGNAL_WEIGHTS = {
     extremeUrgency: 1,
     missingEligibility: 1,
     noSecondaryListing: 1,
+    // Negative weight: this signal REDUCES the score, it's the one case
+    // where "triggered" means good news, not a red flag. A listing genuinely
+    // turning up on a site that manually verifies every listing against its
+    // issuing institution (see search.js's VERIFICATION_PARTNERS) is real
+    // positive evidence, not just "something on the internet mentions this"
+    // — worth offsetting weaker absence-of-evidence signals like
+    // noIndependentPresence/noSecondaryListing, but never enough on its own
+    // to erase an actual red flag like upfrontPayment.
+    verifiedOnPartnerSite: -2,
 };
 
 const SCORE_THRESHOLDS = {
@@ -129,6 +138,18 @@ function checkNoSecondaryListing(searchEvidence) {
         : { triggered: true, evidence: 'Listing does not appear to be mentioned anywhere else on the web' };
 }
 
+// partnerSiteEvidence is an array (one entry per partner checked, see
+// search.js's checkPartnerSitePresence) so a listing found on more than one
+// partner still only counts once as a signal — the point is "at least one
+// site that manually verifies listings vouches for this", not a count.
+function checkVerifiedOnPartnerSite(partnerSiteEvidence) {
+    if (!partnerSiteEvidence || partnerSiteEvidence.length === 0) return { triggered: false, evidence: null };
+    const found = partnerSiteEvidence.filter((p) => p?.found);
+    if (found.length === 0) return { triggered: false, evidence: null };
+    const names = found.map((p) => p.partnerName).join(', ');
+    return { triggered: true, evidence: `Independently verified on ${names}` };
+}
+
 // Confidence tiers, ordered low to high, so a cap can pick "whichever is
 // lower" between two independently-computed tiers.
 const CONFIDENCE_TIERS = ['Very low', 'Low', 'Medium', 'High'];
@@ -176,9 +197,11 @@ function confidenceFor(listing, searchEvidence) {
  * the Google Custom Search integration exists. learnedPatterns is also
  * optional, extra upfront-payment patterns discovered on past runs
  * (see learned-patterns.js); omitting it uses only the fixed static list,
- * so every existing call site keeps working exactly as before.
+ * so every existing call site keeps working exactly as before. partnerSiteEvidence
+ * is also optional (see search.js's checkPartnerSitePresence) — an array of
+ * { found, partnerName } results, one per verification partner checked.
  */
-export function scoreListing(listing, searchEvidence = null, learnedPatterns = []) {
+export function scoreListing(listing, searchEvidence = null, learnedPatterns = [], partnerSiteEvidence = null) {
     const signals = {
         upfrontPayment: checkUpfrontPayment(listing, learnedPatterns),
         extremeUrgency: checkExtremeUrgency(listing),
@@ -186,6 +209,7 @@ export function scoreListing(listing, searchEvidence = null, learnedPatterns = [
         missingEligibility: checkMissingEligibility(listing),
         noIndependentPresence: checkNoIndependentPresence(searchEvidence),
         noSecondaryListing: checkNoSecondaryListing(searchEvidence),
+        verifiedOnPartnerSite: checkVerifiedOnPartnerSite(partnerSiteEvidence),
     };
 
     let score = 0;
@@ -196,6 +220,11 @@ export function scoreListing(listing, searchEvidence = null, learnedPatterns = [
             evidence.push(signals[signal].evidence);
         }
     }
+    // A positive offset (verifiedOnPartnerSite) can push the running total
+    // below zero on an otherwise-clean listing; a risk score has no
+    // meaningful negative value, so it floors at 0 rather than reporting
+    // something like -2.
+    score = Math.max(0, score);
 
     let trustRisk;
     if (score >= SCORE_THRESHOLDS.highRisk) {

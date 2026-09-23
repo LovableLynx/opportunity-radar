@@ -4,7 +4,7 @@ import { makeOpenRouterGenerateContent } from './llm-openrouter.js';
 import { makeGroqGenerateContent } from './llm-groq.js';
 import { scrapeListings, sourceKeysForEducationLevel } from './scrape.js';
 import { matchListing } from './match.js';
-import { searchForListingEvidence } from './search.js';
+import { searchForListingEvidence, checkPartnerSitePresence, VERIFICATION_PARTNERS } from './search.js';
 import { checkAlumniMentions } from './alumni-signal.js';
 import { scoreListing } from './trust.js';
 import { buildDigest } from './digest.js';
@@ -177,7 +177,25 @@ if (input.compareListingA && input.compareListingB) {
         const searchEvidence = match.hardRequirementsMet
             ? await searchForListingEvidence(listing, { sourceHostname: 'phdportal.com', generateContentWithRetry: generateContentForSearch })
             : null;
-        const trust = scoreListing(listing, searchEvidence, learnedPatterns);
+
+        // Opt-in, off by default: two more DuckDuckGo + relevance-filter
+        // calls per checked listing (Scholar Africa, Opportunity Desk), on
+        // top of an already rate-limit-pressured LLM quota. Set
+        // ENABLE_PARTNER_VERIFICATION=1 once quota allows testing it for
+        // real. A listing genuinely found on one of these sites — both of
+        // which manually verify every listing against its issuing
+        // institution — is real positive trust evidence, not just another
+        // page that happens to mention the name.
+        let partnerSiteEvidence = null;
+        if (process.env.ENABLE_PARTNER_VERIFICATION === '1' && match.hardRequirementsMet) {
+            partnerSiteEvidence = await Promise.all(
+                Object.keys(VERIFICATION_PARTNERS).map((key) =>
+                    checkPartnerSitePresence(listing, key, { generateContentWithRetry: generateContentForSearch })
+                )
+            );
+        }
+
+        const trust = scoreListing(listing, searchEvidence, learnedPatterns, partnerSiteEvidence);
 
         // Opt-in, off by default: costs one more paced Gemini call per searched
         // listing on top of relevance filtering, which matters given how tight

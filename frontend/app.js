@@ -218,9 +218,8 @@ const GPA_FRACTION_PATTERN = /^\d+(\.\d+)?\s*\/\s*\d+(\.\d+)?$/;
 const GPA_PERCENT_PATTERN = /^\d+(\.\d+)?\s*%$/;
 const GPA_BARE_NUMBER_PATTERN = /^\d+(\.\d+)?$/;
 const GPA_CLASSIFICATION_PATTERN = /first class|second class|upper|lower|distinction|merit|pass|honou?rs|cgpa/i;
-// Below 5, a bare number isn't ambiguous in practice: CGPA out of 5.00 is
-// the standard scale at Nigerian universities, so "4.5" means 4.5/5.00, not
-// a typo. Keep in sync with api/start-run.js's isPlausibleGpa.
+// At or below 5 is unambiguous CGPA/5.00, a standard Nigerian scale. Keep in
+// sync with api/start-run.js's isPlausibleGpa.
 const GPA_BARE_NUMBER_UNAMBIGUOUS_LOW_CEILING = 5;
 const GPA_BARE_NUMBER_UNAMBIGUOUS_FLOOR = 30;
 
@@ -244,10 +243,7 @@ function plausibleGpaError(value) {
   return 'That doesn\'t look like a real grade (try e.g. "3.6/4.0", "85%", or "First Class").';
 }
 
-// gpaOrGrade's error banner lives inside field-gpa-number in the markup,
-// but needs to highlight whichever sub-field (number, classification,
-// other) the format picker currently shows, since there's no single
-// #gpaOrGrade element anymore.
+// Resolves gpaOrGrade to whichever sub-field is currently visible.
 function gpaErrorTargetId() {
   const format = document.getElementById('gpaFormat').value;
   if (format === 'classification') return 'gpaClassification';
@@ -277,13 +273,8 @@ function clearFieldErrors() {
   document.getElementById('error-cvFile').hidden = true;
 }
 
-// The GPA scale is now picked explicitly (CGPA/4.0, CGPA/5.0, percentage,
-// classification, or "other" free text), instead of asking a student to
-// type a bare number and guessing what scale they meant. That guessing is
-// exactly what caused a real false rejection: a Nigerian student's "4.5"
-// (a real CGPA out of 5.00) was flagged as "too low, needs its scale" by
-// the old ambiguity heuristic. Picking the format first removes the
-// ambiguity instead of trying to out-guess every regional grading system.
+// Picking the scale first avoids guessing it from a bare number (a real
+// Nigerian CGPA like "4.5" used to be flagged as ambiguous).
 const GPA_FORMAT_FIELDS = {
   cgpa4: 'field-gpa-number',
   cgpa5: 'field-gpa-number',
@@ -317,9 +308,7 @@ function updateGpaFormatFields() {
 document.getElementById('gpaFormat').addEventListener('change', updateGpaFormatFields);
 updateGpaFormatFields();
 
-// Builds the actual gpaOrGrade string the API expects, from whichever
-// sub-field is currently showing. Returns '' when nothing usable was
-// entered (format left on "Skip this", or a sub-field left blank).
+// Builds the gpaOrGrade string the API expects from the active sub-field.
 function composeGpaOrGrade() {
   const format = document.getElementById('gpaFormat').value;
   if (format === 'cgpa4' || format === 'cgpa5' || format === 'percentage') {
@@ -338,9 +327,7 @@ function composeGpaOrGrade() {
   return '';
 }
 
-// A bare number needs only a plausible-range check here: the scale is
-// already known from the picker, so there's no ambiguity left to resolve
-// the way plausibleGpaError (still used for "other") has to guess at.
+// Scale is already known from the picker, so this just checks the range.
 function plausibleGpaNumberError(value, max) {
   const trimmed = (value ?? '').trim();
   if (!trimmed) return 'Enter your GPA.';

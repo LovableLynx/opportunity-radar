@@ -247,6 +247,7 @@ function plausibleGpaError(value) {
 function gpaErrorTargetId() {
   const format = document.getElementById('gpaFormat').value;
   if (format === 'classification') return 'gpaClassification';
+  if (format === 'waec') return 'gpaWaec';
   if (format === 'other') return 'gpaOther';
   return 'gpaNumber';
 }
@@ -280,6 +281,7 @@ const GPA_FORMAT_FIELDS = {
   cgpa5: 'field-gpa-number',
   percentage: 'field-gpa-number',
   classification: 'field-gpa-classification',
+  waec: 'field-gpa-waec',
   other: 'field-gpa-other',
 };
 const GPA_NUMBER_LABELS = {
@@ -293,6 +295,23 @@ const GPA_NUMBER_PLACEHOLDERS = {
   percentage: 'e.g. 72',
 };
 
+// CGPA and classification are university terms, so High school gets its own
+// set of options (percentage, WAEC/NECO, other) instead of those.
+function updateGpaFormatOptions() {
+  const isHighSchool = document.getElementById('educationLevel').value === 'High school';
+  const select = document.getElementById('gpaFormat');
+  for (const option of select.querySelectorAll('.gpa-option-university')) {
+    option.hidden = isHighSchool;
+  }
+  for (const option of select.querySelectorAll('.gpa-option-highschool')) {
+    option.hidden = !isHighSchool;
+  }
+  if (select.selectedOptions[0]?.hidden) {
+    select.value = '';
+    updateGpaFormatFields();
+  }
+}
+
 function updateGpaFormatFields() {
   const format = document.getElementById('gpaFormat').value;
   for (const fieldId of new Set(Object.values(GPA_FORMAT_FIELDS))) {
@@ -305,7 +324,9 @@ function updateGpaFormatFields() {
   clearFieldError('gpaOrGrade');
 }
 
+document.getElementById('educationLevel').addEventListener('change', updateGpaFormatOptions);
 document.getElementById('gpaFormat').addEventListener('change', updateGpaFormatFields);
+updateGpaFormatOptions();
 updateGpaFormatFields();
 
 // Builds the gpaOrGrade string the API expects from the active sub-field.
@@ -320,6 +341,9 @@ function composeGpaOrGrade() {
   }
   if (format === 'classification') {
     return document.getElementById('gpaClassification').value;
+  }
+  if (format === 'waec') {
+    return document.getElementById('gpaWaec').value.trim();
   }
   if (format === 'other') {
     return document.getElementById('gpaOther').value.trim();
@@ -366,6 +390,7 @@ function checkGpaField() {
   if (format === 'cgpa4') message = plausibleGpaNumberError(document.getElementById('gpaNumber').value, 4.0);
   else if (format === 'cgpa5') message = plausibleGpaNumberError(document.getElementById('gpaNumber').value, 5.0);
   else if (format === 'percentage') message = plausibleGpaNumberError(document.getElementById('gpaNumber').value, 100);
+  else if (format === 'waec' && !document.getElementById('gpaWaec').value.trim()) message = 'Enter your grades.';
   else if (format === 'other') message = plausibleGpaError(document.getElementById('gpaOther').value);
 
   if (message) showFieldError('gpaOrGrade', message);
@@ -374,11 +399,12 @@ function checkGpaField() {
 }
 
 document.getElementById('gpaNumber').addEventListener('blur', checkGpaField);
+document.getElementById('gpaWaec').addEventListener('blur', checkGpaField);
 document.getElementById('gpaOther').addEventListener('blur', checkGpaField);
 // Clear an error as soon as the student starts fixing that field, rather
 // than making them wait for another blur to see it go away.
 document.getElementById('fieldOfStudy').addEventListener('input', () => clearFieldError('fieldOfStudy'));
-for (const id of ['gpaNumber', 'gpaOther']) {
+for (const id of ['gpaNumber', 'gpaWaec', 'gpaOther']) {
   document.getElementById(id).addEventListener('input', () => clearFieldError('gpaOrGrade'));
 }
 document.getElementById('gpaClassification').addEventListener('change', () => clearFieldError('gpaOrGrade'));
@@ -403,7 +429,7 @@ function validateForm() {
   // gpaOrGrade is optional overall (format left on "Skip this" is fine),
   // but once a format is picked, that format's own field must check out.
   const gpaFormat = document.getElementById('gpaFormat').value;
-  if (gpaFormat === 'cgpa4' || gpaFormat === 'cgpa5' || gpaFormat === 'percentage' || gpaFormat === 'other') {
+  if (gpaFormat === 'cgpa4' || gpaFormat === 'cgpa5' || gpaFormat === 'percentage' || gpaFormat === 'waec' || gpaFormat === 'other') {
     if (!checkGpaField()) hasError = true;
   } else if (gpaFormat === 'classification' && !document.getElementById('gpaClassification').value) {
     showFieldError('gpaOrGrade', 'Select your classification.');

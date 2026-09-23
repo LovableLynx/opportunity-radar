@@ -182,6 +182,30 @@ test.describe('landing and navigation', () => {
     await expect(page.locator('#field-gpa-number')).toBeHidden();
   });
 
+  test('High school hides CGPA/classification options and offers WAEC/NECO instead', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Check my eligibility' }).click();
+
+    await page.selectOption('#educationLevel', 'Bachelors');
+    await expect(page.locator('#gpaFormat option[value="cgpa5"]')).not.toHaveAttribute('hidden', '');
+    await expect(page.locator('#gpaFormat option[value="waec"]')).toHaveAttribute('hidden', '');
+
+    await page.selectOption('#educationLevel', 'High school');
+    await expect(page.locator('#gpaFormat option[value="cgpa5"]')).toHaveAttribute('hidden', '');
+    await expect(page.locator('#gpaFormat option[value="classification"]')).toHaveAttribute('hidden', '');
+    await expect(page.locator('#gpaFormat option[value="waec"]')).not.toHaveAttribute('hidden', '');
+
+    await page.selectOption('#gpaFormat', 'waec');
+    await expect(page.locator('#field-gpa-waec')).toBeVisible();
+    await page.locator('#gpaWaec').fill('6 credits including Maths and English');
+    await page.locator('#gpaWaec').blur();
+    await expect(page.locator('#error-gpaOrGrade')).toBeHidden();
+
+    // Switching back to a university level resets a hidden-now selection.
+    await page.selectOption('#educationLevel', 'Masters');
+    await expect(page.locator('#gpaFormat')).toHaveValue('');
+  });
+
   test('submit-time validation blocks and highlights an implausible field independent of the live blur checks', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Check my eligibility' }).click();

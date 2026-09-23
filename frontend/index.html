@@ -104,10 +104,11 @@
           <label for="gpaFormat">GPA / grade <span class="optional">(optional)</span></label>
           <select id="gpaFormat">
             <option value="">Skip this</option>
-            <option value="cgpa4">CGPA out of 4.0</option>
-            <option value="cgpa5">CGPA out of 5.0</option>
+            <option value="cgpa4" class="gpa-option-university">CGPA out of 4.0</option>
+            <option value="cgpa5" class="gpa-option-university">CGPA out of 5.0</option>
             <option value="percentage">Percentage</option>
-            <option value="classification">Classification (First Class, Second Class...)</option>
+            <option value="classification" class="gpa-option-university">Classification (First Class, Second Class...)</option>
+            <option value="waec" class="gpa-option-highschool">WAEC / NECO grade</option>
             <option value="other">Other</option>
           </select>
         </div>
@@ -127,6 +128,11 @@
             <option value="Third Class">Third Class</option>
             <option value="Pass">Pass</option>
           </select>
+        </div>
+
+        <div class="field" id="field-gpa-waec" hidden>
+          <label for="gpaWaec">Your best subject grades</label>
+          <input type="text" id="gpaWaec" placeholder="e.g. 6 credits including Maths and English">
         </div>
 
         <div class="field" id="field-gpa-other" hidden>

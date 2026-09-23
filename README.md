@@ -110,6 +110,12 @@ Opportunity Radar uses Apify's Pay-Per-Event pricing, one billable event per
 listing that's been fully matched and trust-scored. The price itself is set
 in Apify Console, not in this repo.
 
+## Team
+
+- **Oluwadarasimi (LovableLynx)** — project lead, backend, QA / test automation
+- **Peace** — frontend
+- **Temilade** — design
+
 ## Further reading
 
 The deeper technical write-ups, architecture decisions, what's been tested

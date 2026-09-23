@@ -31,6 +31,29 @@ Under the hood, this is an [Apify Actor](https://apify.com), a scraping and
 automation program hosted on Apify's platform, paired with a small web
 frontend on Vercel that starts a run and shows the results.
 
+## Input
+
+| Field | Required | Example |
+| --- | --- | --- |
+| `educationLevel` | yes | `Bachelors` (one of High school, Bachelors, Masters, PhD) |
+| `fieldOfStudy` | yes | `Computer Science` |
+| `country` | yes | `Nigeria` |
+| `fundingNeeded` | no | `true` |
+| `gpaOrGrade` | no | `3.6/4.0`, `85%`, or `First Class` |
+| `cvText` | no | Plain text of your CV |
+
+## Output
+
+One record per listing. The fields that matter most:
+
+- `title`, `link`, `deadline`, `urgency`: what the opportunity is and how
+  soon it closes.
+- `eligibilityMatch`: `Eligible`, `Partial`, or `Not Eligible`, with
+  `missingRequirements` and `actionSteps` explaining why and what to do.
+- `trustRisk`: `Low Risk`, `Some Concerns`, or `High Risk`, with
+  `trustEvidence` listing the actual reasons and `trustConfidence` saying how
+  much evidence the verdict rests on.
+
 ## Project structure
 
 - `src/` holds the Actor itself: scraping, eligibility matching, trust
@@ -52,7 +75,8 @@ cp .env.example .env   # fill in your own API key, never commit .env
 
 You'll need a [Groq](https://console.groq.com) API key, since that's the
 default AI provider. Gemini and OpenRouter also work; see `.env.example`
-for how to switch. Then:
+for how to switch. You'll also need the Apify CLI (`npm install -g
+apify-cli`). Then:
 
 ```bash
 apify run
@@ -60,8 +84,10 @@ apify run
 
 Results are written to `storage/datasets/default/`.
 
-To run the frontend locally, see `frontend/package.json`, `npm run dev`
-inside `frontend/`.
+To run the web app locally, run `npm run dev` inside `frontend/`. That uses
+the Vercel CLI and needs an `APIFY_API_TOKEN` so it can start real Actor
+runs. To just look at the interface without a token, click "See a live
+example" on the landing page, which loads saved sample results.
 
 ## Running the tests
 

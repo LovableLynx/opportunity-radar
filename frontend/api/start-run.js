@@ -37,7 +37,9 @@ const MAX_LENGTHS = {
 // (no vowels at all, since virtually no real field-of-study or country name
 // in any language is consonants-only), not a claim that everything past
 // this filter is definitely real.
-const MIN_FREE_TEXT_LENGTH = 3;
+// 2, not 3: real, common inputs like "UK", "US", "IT", and "AI" are two
+// letters. The no-vowel rule below still rejects two-letter junk like "hy".
+const MIN_FREE_TEXT_LENGTH = 2;
 const NO_VOWELS_PATTERN = /^[^aeiouAEIOU\s]+$/;
 
 // gpaOrGrade, unlike fieldOfStudy/country, has a real expected shape — a

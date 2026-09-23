@@ -126,6 +126,17 @@ test('a too-short or vowel-less fieldOfStudy/country is rejected as implausible'
     assertValid(validProfile({ country: 'DR Congo' }));
 });
 
+test('regression: two-letter real names like UK, US, IT, AI are accepted, not rejected as too short', () => {
+    // A 3-character minimum used to block every UK and US student outright.
+    assertValid(validProfile({ country: 'UK' }));
+    assertValid(validProfile({ country: 'US' }));
+    assertValid(validProfile({ fieldOfStudy: 'IT' }));
+    assertValid(validProfile({ fieldOfStudy: 'AI' }));
+    // Two-letter junk is still caught by the no-vowel rule.
+    assertInvalid(validProfile({ fieldOfStudy: 'hy' }), 'fieldOfStudy');
+    assertInvalid(validProfile({ country: 'zz' }), 'country');
+});
+
 test('gpaOrGrade accepts a fraction, a percentage, or a named classification', () => {
     assertValid(validProfile({ gpaOrGrade: '3.6/4.0' }));
     assertValid(validProfile({ gpaOrGrade: '85%' }));

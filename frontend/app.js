@@ -202,7 +202,7 @@ const REQUIRED_FIELDS = ['educationLevel', 'fieldOfStudy', 'country'];
 // showed per submit. Kept as small pure functions (not shared code with the
 // API route, since that runs in a different runtime) so both sides always
 // agree on what "looks real" means; if one changes, the other should too.
-const MIN_FREE_TEXT_LENGTH = 3;
+const MIN_FREE_TEXT_LENGTH = 2; // keep in sync with api/start-run.js
 const NO_VOWELS_PATTERN = /^[^aeiouAEIOU\s]+$/;
 
 function plausibleTextError(value, label) {

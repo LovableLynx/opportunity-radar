@@ -44,66 +44,97 @@ const NO_VOWELS_PATTERN = /^[^aeiouAEIOU\s]+$/;
 // number (optionally out of a scale), a percentage, or a named
 // classification — so it gets a genuine format check rather than a
 // heuristic floor. "00" matches none of these.
-const GPA_PATTERNS = [
-    /^\d+(\.\d+)?\s*\/\s*\d+(\.\d+)?$/, // "3.6/4.0"
-    /^\d+(\.\d+)?\s*%$/, // "85%"
-    /^\d+(\.\d+)?$/, // "3.6" or "85" (bare number, range-checked below)
-    /first class|second class|upper|lower|distinction|merit|pass|honou?rs|cgpa/i, // named classifications
-];
+const GPA_FRACTION_PATTERN = /^\d+(\.\d+)?\s*\/\s*\d+(\.\d+)?$/; // "3.6/4.0"
+const GPA_PERCENT_PATTERN = /^\d+(\.\d+)?\s*%$/; // "85%"
+const GPA_BARE_NUMBER_PATTERN = /^\d+(\.\d+)?$/; // "3.6" or "85", scale-checked below
+const GPA_CLASSIFICATION_PATTERN = /first class|second class|upper|lower|distinction|merit|pass|honou?rs|cgpa/i;
+
+// A bare number's scale is genuinely ambiguous below 30 — "8" could mean
+// 8/10, a typo, or something else entirely, and real GPA scales (4.0, 5.0,
+// 10.0) never reach 30, so nobody means "30" as a raw GPA. Above that
+// threshold a bare number can only sensibly be a percentage grade (a real
+// exam/course percentage), so it's accepted without requiring the % sign.
+// Below it, the student needs to be explicit ("8/10" or "8%") rather than
+// leaving us to guess.
+const BARE_NUMBER_UNAMBIGUOUS_FLOOR = 30;
 
 function isPlausibleGpa(value) {
     const trimmed = value.trim();
-    if (!GPA_PATTERNS.some((p) => p.test(trimmed))) return false;
-    // A bare number needs to fall in a plausible range for either a 0-4/0-5
-    // scale GPA or a 0-100 percentage-style grade — "00" (0) is technically
-    // in range but functionally meaningless as a grade someone would report,
-    // so require a positive value too.
-    const bareNumber = /^\d+(\.\d+)?$/.test(trimmed) ? parseFloat(trimmed) : null;
-    if (bareNumber !== null && (bareNumber <= 0 || bareNumber > 100)) return false;
-    return true;
+
+    if (GPA_FRACTION_PATTERN.test(trimmed) || GPA_PERCENT_PATTERN.test(trimmed) || GPA_CLASSIFICATION_PATTERN.test(trimmed)) {
+        return true;
+    }
+
+    if (GPA_BARE_NUMBER_PATTERN.test(trimmed)) {
+        const n = parseFloat(trimmed);
+        // "00"/"0" is technically in range but functionally meaningless as
+        // a grade someone would report, and anything past 100 isn't a
+        // sensible percentage either.
+        return n > BARE_NUMBER_UNAMBIGUOUS_FLOOR && n <= 100;
+    }
+
+    return false;
 }
 
+// Returns { valid: true } or { valid: false, fieldErrors: { field: message },
+// error: "first message, for callers that only want one string" }.
+// Collects every field's problem in one pass instead of stopping at the
+// first, since a real user hit exactly this: fieldOfStudy="hy" AND
+// country="7" submitted together, but the old return-on-first-error
+// behavior only ever reported fieldOfStudy, so fixing it and resubmitting
+// would have then failed again on country, one frustrating round-trip at a
+// time instead of seeing every problem at once.
 export function validateProfile(body) {
-    if (!body || typeof body !== 'object') return 'Request body must be a JSON object.';
+    if (!body || typeof body !== 'object') {
+        return { valid: false, fieldErrors: {}, error: 'Request body must be a JSON object.' };
+    }
 
     const { educationLevel, fieldOfStudy, country, fundingNeeded, gpaOrGrade, cvText } = body;
+    const fieldErrors = {};
 
     if (typeof educationLevel !== 'string' || !EDUCATION_LEVELS.includes(educationLevel)) {
-        return `educationLevel must be one of: ${EDUCATION_LEVELS.join(', ')}.`;
-    }
-    if (typeof fieldOfStudy !== 'string' || !fieldOfStudy.trim()) {
-        return 'fieldOfStudy is required.';
-    }
-    if (fieldOfStudy.trim().length < MIN_FREE_TEXT_LENGTH || NO_VOWELS_PATTERN.test(fieldOfStudy.trim())) {
-        return 'fieldOfStudy does not look like a real field of study.';
-    }
-    if (typeof country !== 'string' || !country.trim()) {
-        return 'country is required.';
-    }
-    if (country.trim().length < MIN_FREE_TEXT_LENGTH || NO_VOWELS_PATTERN.test(country.trim())) {
-        return 'country does not look like a real country name.';
-    }
-    if (fundingNeeded !== undefined && typeof fundingNeeded !== 'boolean') {
-        return 'fundingNeeded must be a boolean.';
-    }
-    if (gpaOrGrade !== undefined && gpaOrGrade !== null && typeof gpaOrGrade !== 'string') {
-        return 'gpaOrGrade must be a string.';
-    }
-    if (typeof gpaOrGrade === 'string' && gpaOrGrade.trim() && !isPlausibleGpa(gpaOrGrade)) {
-        return 'gpaOrGrade does not look like a real grade (expected e.g. "3.6/4.0", "85%", or "First Class").';
-    }
-    if (cvText !== undefined && cvText !== null && typeof cvText !== 'string') {
-        return 'cvText must be a string.';
+        fieldErrors.educationLevel = `educationLevel must be one of: ${EDUCATION_LEVELS.join(', ')}.`;
     }
 
-    for (const [field, max] of Object.entries(MAX_LENGTHS)) {
-        const value = body[field];
-        if (typeof value === 'string' && value.length > max) {
-            return `${field} is too long (max ${max} characters).`;
+    if (typeof fieldOfStudy !== 'string' || !fieldOfStudy.trim()) {
+        fieldErrors.fieldOfStudy = 'fieldOfStudy is required.';
+    } else if (fieldOfStudy.trim().length < MIN_FREE_TEXT_LENGTH || NO_VOWELS_PATTERN.test(fieldOfStudy.trim())) {
+        fieldErrors.fieldOfStudy = 'fieldOfStudy does not look like a real field of study.';
+    } else if (fieldOfStudy.length > MAX_LENGTHS.fieldOfStudy) {
+        fieldErrors.fieldOfStudy = `fieldOfStudy is too long (max ${MAX_LENGTHS.fieldOfStudy} characters).`;
+    }
+
+    if (typeof country !== 'string' || !country.trim()) {
+        fieldErrors.country = 'country is required.';
+    } else if (country.trim().length < MIN_FREE_TEXT_LENGTH || NO_VOWELS_PATTERN.test(country.trim())) {
+        fieldErrors.country = 'country does not look like a real country name.';
+    } else if (country.length > MAX_LENGTHS.country) {
+        fieldErrors.country = `country is too long (max ${MAX_LENGTHS.country} characters).`;
+    }
+
+    if (fundingNeeded !== undefined && typeof fundingNeeded !== 'boolean') {
+        fieldErrors.fundingNeeded = 'fundingNeeded must be a boolean.';
+    }
+
+    if (gpaOrGrade !== undefined && gpaOrGrade !== null && typeof gpaOrGrade !== 'string') {
+        fieldErrors.gpaOrGrade = 'gpaOrGrade must be a string.';
+    } else if (typeof gpaOrGrade === 'string' && gpaOrGrade.trim()) {
+        if (gpaOrGrade.length > MAX_LENGTHS.gpaOrGrade) {
+            fieldErrors.gpaOrGrade = `gpaOrGrade is too long (max ${MAX_LENGTHS.gpaOrGrade} characters).`;
+        } else if (!isPlausibleGpa(gpaOrGrade)) {
+            fieldErrors.gpaOrGrade = 'gpaOrGrade does not look like a real grade (expected e.g. "3.6/4.0", "85%", or "First Class").';
         }
     }
 
-    return null;
+    if (cvText !== undefined && cvText !== null && typeof cvText !== 'string') {
+        fieldErrors.cvText = 'cvText must be a string.';
+    } else if (typeof cvText === 'string' && cvText.length > MAX_LENGTHS.cvText) {
+        fieldErrors.cvText = `cvText is too long (max ${MAX_LENGTHS.cvText} characters).`;
+    }
+
+    const messages = Object.values(fieldErrors);
+    if (messages.length === 0) return { valid: true };
+    return { valid: false, fieldErrors, error: messages[0] };
 }
 
 export default async function handler(req, res) {
@@ -112,9 +143,9 @@ export default async function handler(req, res) {
         return;
     }
 
-    const validationError = validateProfile(req.body);
-    if (validationError) {
-        res.status(400).json({ error: validationError });
+    const validation = validateProfile(req.body);
+    if (!validation.valid) {
+        res.status(400).json({ error: validation.error, fieldErrors: validation.fieldErrors });
         return;
     }
 

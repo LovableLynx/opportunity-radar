@@ -1,6 +1,6 @@
 // Unit tests for validateProfile, the input-validation gate on the public
 // /api/start-run endpoint. This is the actual public entry point students'
-// profile data comes through before Apify ever sees it — the frontend
+// profile data comes through before Apify ever sees it, the frontend
 // form's own validation only stops the UI, not a direct POST to this route,
 // so this needs its own independent test coverage.
 //
@@ -20,109 +20,150 @@ function validProfile(overrides = {}) {
     };
 }
 
+function assertValid(profile) {
+    const result = validateProfile(profile);
+    assert.equal(result.valid, true, `expected valid, got errors: ${JSON.stringify(result.fieldErrors)}`);
+}
+
+function assertInvalid(profile, field) {
+    const result = validateProfile(profile);
+    assert.equal(result.valid, false);
+    if (field) assert.ok(result.fieldErrors[field], `expected an error on "${field}", got: ${JSON.stringify(result.fieldErrors)}`);
+}
+
 test('a complete, valid profile passes', () => {
-    assert.equal(validateProfile(validProfile()), null);
+    assertValid(validProfile());
 });
 
 test('optional fields (gpaOrGrade, cvText) can be omitted', () => {
     const { fundingNeeded, ...profile } = validProfile();
-    assert.equal(validateProfile(profile), null);
+    assertValid(profile);
 });
 
 test('an empty body is rejected, not silently forwarded to Apify', () => {
-    assert.notEqual(validateProfile({}), null);
+    assertInvalid({});
 });
 
 test('null or non-object bodies are rejected', () => {
-    assert.notEqual(validateProfile(null), null);
-    assert.notEqual(validateProfile(undefined), null);
-    assert.notEqual(validateProfile('a string'), null);
-    assert.notEqual(validateProfile(42), null);
+    assertInvalid(null);
+    assertInvalid(undefined);
+    assertInvalid('a string');
+    assertInvalid(42);
 });
 
 test('missing educationLevel is rejected', () => {
     const { educationLevel, ...profile } = validProfile();
-    assert.notEqual(validateProfile(profile), null);
+    assertInvalid(profile, 'educationLevel');
 });
 
 test('educationLevel must be one of the four allowed values, matching input_schema.json', () => {
-    assert.equal(validateProfile(validProfile({ educationLevel: 'PhD' })), null);
-    assert.notEqual(validateProfile(validProfile({ educationLevel: 'Postdoc' })), null);
-    assert.notEqual(validateProfile(validProfile({ educationLevel: '' })), null);
-    assert.notEqual(validateProfile(validProfile({ educationLevel: 123 })), null);
+    assertValid(validProfile({ educationLevel: 'PhD' }));
+    assertInvalid(validProfile({ educationLevel: 'Postdoc' }), 'educationLevel');
+    assertInvalid(validProfile({ educationLevel: '' }), 'educationLevel');
+    assertInvalid(validProfile({ educationLevel: 123 }), 'educationLevel');
 });
 
 test('missing or blank fieldOfStudy is rejected', () => {
-    assert.notEqual(validateProfile(validProfile({ fieldOfStudy: '' })), null);
-    assert.notEqual(validateProfile(validProfile({ fieldOfStudy: '   ' })), null);
+    assertInvalid(validProfile({ fieldOfStudy: '' }), 'fieldOfStudy');
+    assertInvalid(validProfile({ fieldOfStudy: '   ' }), 'fieldOfStudy');
     const { fieldOfStudy, ...profile } = validProfile();
-    assert.notEqual(validateProfile(profile), null);
+    assertInvalid(profile, 'fieldOfStudy');
 });
 
 test('missing or blank country is rejected', () => {
-    assert.notEqual(validateProfile(validProfile({ country: '' })), null);
+    assertInvalid(validProfile({ country: '' }), 'country');
     const { country, ...profile } = validProfile();
-    assert.notEqual(validateProfile(profile), null);
+    assertInvalid(profile, 'country');
 });
 
 test('fundingNeeded must be a boolean when present', () => {
-    assert.equal(validateProfile(validProfile({ fundingNeeded: false })), null);
-    assert.notEqual(validateProfile(validProfile({ fundingNeeded: 'yes' })), null);
+    assertValid(validProfile({ fundingNeeded: false }));
+    assertInvalid(validProfile({ fundingNeeded: 'yes' }), 'fundingNeeded');
 });
 
 test('gpaOrGrade and cvText accept null (their "not provided" value from the frontend)', () => {
-    assert.equal(validateProfile(validProfile({ gpaOrGrade: null, cvText: null })), null);
+    assertValid(validProfile({ gpaOrGrade: null, cvText: null }));
 });
 
 test('gpaOrGrade and cvText reject non-string, non-null values', () => {
-    assert.notEqual(validateProfile(validProfile({ gpaOrGrade: 4.0 })), null);
-    assert.notEqual(validateProfile(validProfile({ cvText: ['a', 'list'] })), null);
+    assertInvalid(validProfile({ gpaOrGrade: 4.0 }), 'gpaOrGrade');
+    assertInvalid(validProfile({ cvText: ['a', 'list'] }), 'cvText');
 });
 
 test('an overly long fieldOfStudy, country, or gpaOrGrade is rejected', () => {
-    assert.notEqual(validateProfile(validProfile({ fieldOfStudy: 'x'.repeat(201) })), null);
-    assert.notEqual(validateProfile(validProfile({ country: 'x'.repeat(201) })), null);
-    assert.notEqual(validateProfile(validProfile({ gpaOrGrade: 'x'.repeat(101) })), null);
+    assertInvalid(validProfile({ fieldOfStudy: 'x'.repeat(201) }), 'fieldOfStudy');
+    assertInvalid(validProfile({ country: 'x'.repeat(201) }), 'country');
+    assertInvalid(validProfile({ gpaOrGrade: 'x'.repeat(101) }), 'gpaOrGrade');
 });
 
 test('a cvText right at the extraction limit is fine, one over is rejected', () => {
-    assert.equal(validateProfile(validProfile({ cvText: 'x'.repeat(20000) })), null);
-    assert.notEqual(validateProfile(validProfile({ cvText: 'x'.repeat(20001) })), null);
+    assertValid(validProfile({ cvText: 'x'.repeat(20000) }));
+    assertInvalid(validProfile({ cvText: 'x'.repeat(20001) }), 'cvText');
 });
 
 test('regression: fieldOfStudy="hy" with gpaOrGrade="00" is rejected (a real garbage-input test caught this reaching a live, billed Actor run)', () => {
-    assert.notEqual(validateProfile(validProfile({ fieldOfStudy: 'hy', gpaOrGrade: '00' })), null);
+    assertInvalid(validProfile({ fieldOfStudy: 'hy', gpaOrGrade: '00' }));
+});
+
+test('regression: fieldOfStudy="hy" AND country="7" together are BOTH reported, not just the first one found', () => {
+    // A real user hit this: fixing fieldOfStudy and resubmitting only then
+    // revealed the country error, one frustrating round-trip at a time.
+    const result = validateProfile(validProfile({ fieldOfStudy: 'hy', country: '7' }));
+    assert.equal(result.valid, false);
+    assert.ok(result.fieldErrors.fieldOfStudy);
+    assert.ok(result.fieldErrors.country);
 });
 
 test('a too-short or vowel-less fieldOfStudy/country is rejected as implausible', () => {
-    assert.notEqual(validateProfile(validProfile({ fieldOfStudy: 'hy' })), null);
-    assert.notEqual(validateProfile(validProfile({ fieldOfStudy: 'xkcd' })), null);
-    assert.notEqual(validateProfile(validProfile({ country: 'zzz' })), null);
+    assertInvalid(validProfile({ fieldOfStudy: 'hy' }), 'fieldOfStudy');
+    assertInvalid(validProfile({ fieldOfStudy: 'xkcd' }), 'fieldOfStudy');
+    assertInvalid(validProfile({ country: 'zzz' }), 'country');
+    assertInvalid(validProfile({ country: '7' }), 'country');
     // Short but real values (short names, common abbreviations) still pass.
-    assert.equal(validateProfile(validProfile({ fieldOfStudy: 'Art' })), null);
-    assert.equal(validateProfile(validProfile({ fieldOfStudy: 'Law' })), null);
-    assert.equal(validateProfile(validProfile({ country: 'UAE' })), null);
-    assert.equal(validateProfile(validProfile({ country: 'DR Congo' })), null);
+    assertValid(validProfile({ fieldOfStudy: 'Art' }));
+    assertValid(validProfile({ fieldOfStudy: 'Law' }));
+    assertValid(validProfile({ country: 'UAE' }));
+    assertValid(validProfile({ country: 'DR Congo' }));
 });
 
-test('gpaOrGrade must match a real grade shape: fraction, percentage, plain number in range, or a named classification', () => {
-    assert.equal(validateProfile(validProfile({ gpaOrGrade: '3.6/4.0' })), null);
-    assert.equal(validateProfile(validProfile({ gpaOrGrade: '85%' })), null);
-    assert.equal(validateProfile(validProfile({ gpaOrGrade: '3.6' })), null);
-    assert.equal(validateProfile(validProfile({ gpaOrGrade: 'First Class' })), null);
-    assert.equal(validateProfile(validProfile({ gpaOrGrade: 'Second Class Upper' })), null);
-    assert.equal(validateProfile(validProfile({ gpaOrGrade: 'CGPA 4.5' })), null);
+test('gpaOrGrade accepts a fraction, a percentage, or a named classification', () => {
+    assertValid(validProfile({ gpaOrGrade: '3.6/4.0' }));
+    assertValid(validProfile({ gpaOrGrade: '85%' }));
+    assertValid(validProfile({ gpaOrGrade: 'First Class' }));
+    assertValid(validProfile({ gpaOrGrade: 'Second Class Upper' }));
+    assertValid(validProfile({ gpaOrGrade: 'CGPA 4.5' }));
+});
 
-    assert.notEqual(validateProfile(validProfile({ gpaOrGrade: '00' })), null);
-    assert.notEqual(validateProfile(validProfile({ gpaOrGrade: '0' })), null);
-    assert.notEqual(validateProfile(validProfile({ gpaOrGrade: '-5' })), null);
-    assert.notEqual(validateProfile(validProfile({ gpaOrGrade: 'asdf' })), null);
-    assert.notEqual(validateProfile(validProfile({ gpaOrGrade: '9999' })), null);
+test('a bare gpaOrGrade number above 30 is accepted as an unambiguous percentage', () => {
+    assertValid(validProfile({ gpaOrGrade: '85' }));
+    assertValid(validProfile({ gpaOrGrade: '72.5' }));
+});
+
+test('a bare gpaOrGrade number at or below 30 is rejected as ambiguous, needs an explicit scale', () => {
+    // Regression: "8" alone previously passed as "valid" even though it
+    // could mean 8/10, a typo, or something else entirely — a real GPA
+    // scale (4.0, 5.0, 10.0) never reaches 30, so nobody means a bare "8"
+    // or "3.6" as a percentage, and it's ambiguous without a stated scale.
+    assertInvalid(validProfile({ gpaOrGrade: '8' }), 'gpaOrGrade');
+    assertInvalid(validProfile({ gpaOrGrade: '3.6' }), 'gpaOrGrade');
+    assertInvalid(validProfile({ gpaOrGrade: '30' }), 'gpaOrGrade');
+    // Made explicit with a scale, the same numbers are fine.
+    assertValid(validProfile({ gpaOrGrade: '8/10' }));
+    assertValid(validProfile({ gpaOrGrade: '3.6/4.0' }));
+    assertValid(validProfile({ gpaOrGrade: '8%' }));
+});
+
+test('gpaOrGrade rejects zero, negative, over-100, and nonsense values', () => {
+    assertInvalid(validProfile({ gpaOrGrade: '00' }), 'gpaOrGrade');
+    assertInvalid(validProfile({ gpaOrGrade: '0' }), 'gpaOrGrade');
+    assertInvalid(validProfile({ gpaOrGrade: '-5' }), 'gpaOrGrade');
+    assertInvalid(validProfile({ gpaOrGrade: 'asdf' }), 'gpaOrGrade');
+    assertInvalid(validProfile({ gpaOrGrade: '9999' }), 'gpaOrGrade');
 });
 
 test('an omitted or blank gpaOrGrade is fine (it is optional; the format check only applies when something was provided)', () => {
     const { gpaOrGrade, ...profile } = validProfile();
-    assert.equal(validateProfile(profile), null);
-    assert.equal(validateProfile(validProfile({ gpaOrGrade: '' })), null);
-    assert.equal(validateProfile(validProfile({ gpaOrGrade: '   ' })), null);
+    assertValid(profile);
+    assertValid(validProfile({ gpaOrGrade: '' }));
+    assertValid(validProfile({ gpaOrGrade: '   ' }));
 });

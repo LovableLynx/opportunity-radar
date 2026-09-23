@@ -194,25 +194,122 @@ document.getElementById('btn-demo').addEventListener('click', async () => {
 // the top of the form. Required fields only, optional fields never block.
 const REQUIRED_FIELDS = ['educationLevel', 'fieldOfStudy', 'country'];
 
+// These mirror frontend/api/start-run.js's validateProfile rules exactly, so
+// a student sees the same objection here that the server would raise, live
+// as they type, rather than only after a submit round-trip. A real user hit
+// this: typing "hy" for field of study and "7" for country both passed
+// silently until server-rejection, and even then only one field's error
+// showed per submit. Kept as small pure functions (not shared code with the
+// API route, since that runs in a different runtime) so both sides always
+// agree on what "looks real" means; if one changes, the other should too.
+const MIN_FREE_TEXT_LENGTH = 3;
+const NO_VOWELS_PATTERN = /^[^aeiouAEIOU\s]+$/;
+
+function plausibleTextError(value, label) {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return null; // presence is checked separately by validateForm
+  if (trimmed.length < MIN_FREE_TEXT_LENGTH || NO_VOWELS_PATTERN.test(trimmed)) {
+    return `That doesn't look like a real ${label}.`;
+  }
+  return null;
+}
+
+const GPA_FRACTION_PATTERN = /^\d+(\.\d+)?\s*\/\s*\d+(\.\d+)?$/;
+const GPA_PERCENT_PATTERN = /^\d+(\.\d+)?\s*%$/;
+const GPA_BARE_NUMBER_PATTERN = /^\d+(\.\d+)?$/;
+const GPA_CLASSIFICATION_PATTERN = /first class|second class|upper|lower|distinction|merit|pass|honou?rs|cgpa/i;
+const GPA_BARE_NUMBER_UNAMBIGUOUS_FLOOR = 30;
+
+function plausibleGpaError(value) {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return null; // optional field, blank is fine
+
+  if (GPA_FRACTION_PATTERN.test(trimmed) || GPA_PERCENT_PATTERN.test(trimmed) || GPA_CLASSIFICATION_PATTERN.test(trimmed)) {
+    return null;
+  }
+  if (GPA_BARE_NUMBER_PATTERN.test(trimmed)) {
+    const n = parseFloat(trimmed);
+    if (n > GPA_BARE_NUMBER_UNAMBIGUOUS_FLOOR && n <= 100) return null;
+    if (n <= GPA_BARE_NUMBER_UNAMBIGUOUS_FLOOR) {
+      return `A number that low needs its scale, like "${trimmed}/10" or "${trimmed}%".`;
+    }
+    return 'That doesn\'t look like a real grade.';
+  }
+  return 'That doesn\'t look like a real grade (try e.g. "3.6/4.0", "85%", or "First Class").';
+}
+
+function showFieldError(id, message) {
+  document.getElementById(id).closest('.field').classList.add('has-error');
+  const error = document.getElementById(`error-${id}`);
+  if (message) error.textContent = message;
+  error.hidden = false;
+}
+
+function clearFieldError(id) {
+  document.getElementById(id).closest('.field').classList.remove('has-error');
+  document.getElementById(`error-${id}`).hidden = true;
+}
+
 function clearFieldErrors() {
   document.getElementById('form-error-banner').hidden = true;
-  for (const id of REQUIRED_FIELDS) {
-    document.getElementById(id).closest('.field').classList.remove('has-error');
-    document.getElementById(`error-${id}`).hidden = true;
+  for (const id of ['educationLevel', 'fieldOfStudy', 'country', 'gpaOrGrade']) {
+    clearFieldError(id);
   }
   document.getElementById('error-cvFile').hidden = true;
 }
 
+// Live feedback as the student types or leaves a field, instead of only
+// finding out on submit (or worse, only after a server round-trip).
+document.getElementById('fieldOfStudy').addEventListener('blur', (e) => {
+  const message = plausibleTextError(e.target.value, 'field of study');
+  if (message) showFieldError('fieldOfStudy', message);
+  else if (e.target.value.trim()) clearFieldError('fieldOfStudy');
+});
+document.getElementById('country').addEventListener('blur', (e) => {
+  const message = plausibleTextError(e.target.value, 'country');
+  if (message) showFieldError('country', message);
+  else if (e.target.value.trim()) clearFieldError('country');
+});
+document.getElementById('gpaOrGrade').addEventListener('blur', (e) => {
+  const message = plausibleGpaError(e.target.value);
+  if (message) showFieldError('gpaOrGrade', message);
+  else clearFieldError('gpaOrGrade');
+});
+// Clear an error as soon as the student starts fixing that field, rather
+// than making them wait for another blur to see it go away.
+for (const id of ['fieldOfStudy', 'country', 'gpaOrGrade']) {
+  document.getElementById(id).addEventListener('input', () => clearFieldError(id));
+}
+
 function validateForm() {
   let hasError = false;
+
   for (const id of REQUIRED_FIELDS) {
     const field = document.getElementById(id);
     if (!field.value.trim()) {
-      field.closest('.field').classList.add('has-error');
-      document.getElementById(`error-${id}`).hidden = false;
+      showFieldError(id);
       hasError = true;
     }
   }
+
+  const fieldOfStudyError = plausibleTextError(document.getElementById('fieldOfStudy').value, 'field of study');
+  if (fieldOfStudyError) {
+    showFieldError('fieldOfStudy', fieldOfStudyError);
+    hasError = true;
+  }
+
+  const countryError = plausibleTextError(document.getElementById('country').value, 'country');
+  if (countryError) {
+    showFieldError('country', countryError);
+    hasError = true;
+  }
+
+  const gpaError = plausibleGpaError(document.getElementById('gpaOrGrade').value);
+  if (gpaError) {
+    showFieldError('gpaOrGrade', gpaError);
+    hasError = true;
+  }
+
   document.getElementById('form-error-banner').hidden = !hasError;
   return !hasError;
 }
@@ -267,6 +364,13 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
       const banner = document.getElementById('form-error-banner');
       banner.textContent = startData.error || 'Please check your answers and try again.';
       banner.hidden = false;
+      // The server checks things the client-side mirror can't fully
+      // guarantee stays in sync (see start-run.js's validateProfile), so
+      // highlight whichever specific fields it actually flagged, same as
+      // the live client-side checks do.
+      for (const [field, message] of Object.entries(startData.fieldErrors ?? {})) {
+        if (document.getElementById(`error-${field}`)) showFieldError(field, message);
+      }
       return;
     }
 

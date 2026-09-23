@@ -778,8 +778,9 @@ function renderResults(results, digest, isDemo) {
         </div>
         <div class="badges">
           <span class="badge ${badgeClassForMatch(r.eligibilityMatch)}">${escapeHtml(r.eligibilityMatch || 'Unknown')}</span>
+          <span class="badge badge-confidence" title="Whether this listing's own eligibility text was actually checked">${escapeHtml(r.eligibilityConfidence || '?')}</span>
           <span class="badge ${badgeClassForRisk(r.trustRisk)}">${escapeHtml(r.trustRisk || 'Unknown')}</span>
-          <span class="badge badge-confidence">${escapeHtml(r.trustConfidence || '?')} confidence</span>
+          <span class="badge badge-confidence" title="How much independent web evidence backs this trust assessment">${escapeHtml(r.trustConfidence || '?')} confidence</span>
         </div>
       </div>
       <div class="listing-body">

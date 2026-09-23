@@ -129,6 +129,14 @@ function checkNoSecondaryListing(searchEvidence) {
         : { triggered: true, evidence: 'Listing does not appear to be mentioned anywhere else on the web' };
 }
 
+// Confidence tiers, ordered low to high, so a cap can pick "whichever is
+// lower" between two independently-computed tiers.
+const CONFIDENCE_TIERS = ['Very low', 'Low', 'Medium', 'High'];
+
+function lowerConfidence(a, b) {
+    return CONFIDENCE_TIERS.indexOf(a) <= CONFIDENCE_TIERS.indexOf(b) ? a : b;
+}
+
 /**
  * How much we actually had to go on when scoring this listing. Two listings
  * can both land on "Low Risk" for very different reasons: one because five
@@ -136,21 +144,30 @@ function checkNoSecondaryListing(searchEvidence) {
  * and nothing in the text tripped a red flag. Those aren't equally
  * trustworthy verdicts, so this is tracked and reported separately rather
  * than folded into trustRisk itself.
+ *
+ * A real production run caught a conflation here too: a listing whose
+ * eligibility page was never fetched could still land on "High confidence"
+ * purely because its title happened to get 2+ distinct-domain search hits —
+ * search-result count measures how well-corroborated the listing's
+ * existence is, not whether we actually read its eligibility text. Capping
+ * on hasEligibilityText keeps "High confidence" meaning "we verified this
+ * listing thoroughly", not just "it's mentioned in a couple of places".
  */
 function confidenceFor(listing, searchEvidence) {
     const hasEligibilityText = Boolean(listing.eligibility);
     const hasDescription = Boolean(listing.description);
+    const eligibilityCap = hasEligibilityText ? 'High' : 'Medium';
 
     if (!searchEvidence) {
         // No web search ran at all (listing failed hard requirements, so we
         // skip search entirely, or the search itself failed).
-        return hasEligibilityText || hasDescription ? 'Low' : 'Very low';
+        const base = hasEligibilityText || hasDescription ? 'Low' : 'Very low';
+        return lowerConfidence(base, eligibilityCap);
     }
 
     const resultCount = searchEvidence.resultCount ?? 0;
-    if (resultCount === 0) return 'Low';
-    if (resultCount === 1) return 'Medium';
-    return 'High';
+    const searchBased = resultCount === 0 ? 'Low' : resultCount === 1 ? 'Medium' : 'High';
+    return lowerConfidence(searchBased, eligibilityCap);
 }
 
 /**

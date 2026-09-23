@@ -33,7 +33,8 @@
         "fieldOfStudy": "Computer Science",
         "country": "Nigeria",
         "fundingNeeded": true
-      }
+      },
+      "eligibilityConfidence": "Verified"
     },
     {
       "title": "Fulbright U.S. Student Program",
@@ -60,7 +61,8 @@
         "fieldOfStudy": "Computer Science",
         "country": "Nigeria",
         "fundingNeeded": true
-      }
+      },
+      "eligibilityConfidence": "Unverified"
     },
     {
       "title": "China Scholarship Council (CSC) Scholarship",
@@ -89,7 +91,8 @@
         "fieldOfStudy": "Computer Science",
         "country": "Nigeria",
         "fundingNeeded": true
-      }
+      },
+      "eligibilityConfidence": "Verified"
     },
     {
       "title": "Australia Awards Pacific Scholarships",
@@ -118,7 +121,8 @@
         "fieldOfStudy": "Computer Science",
         "country": "Nigeria",
         "fundingNeeded": true
-      }
+      },
+      "eligibilityConfidence": "Verified"
     },
     {
       "title": "John Monash Scholarships",
@@ -147,7 +151,8 @@
         "fieldOfStudy": "Computer Science",
         "country": "Nigeria",
         "fundingNeeded": true
-      }
+      },
+      "eligibilityConfidence": "Verified"
     },
     {
       "title": "Belgian American Educational Foundation (BAEF)",
@@ -174,7 +179,8 @@
         "fieldOfStudy": "Computer Science",
         "country": "Nigeria",
         "fundingNeeded": true
-      }
+      },
+      "eligibilityConfidence": "Unverified"
     },
     {
       "title": "$1,500 Annual Video Contest Scholarship",
@@ -201,7 +207,8 @@
         "fieldOfStudy": "Computer Science",
         "country": "Nigeria",
         "fundingNeeded": true
-      }
+      },
+      "eligibilityConfidence": "Unverified"
     },
     {
       "title": "Chinese Government Scholarship - Type A - Bilateral Program",
@@ -228,7 +235,8 @@
         "fieldOfStudy": "Computer Science",
         "country": "Nigeria",
         "fundingNeeded": true
-      }
+      },
+      "eligibilityConfidence": "Unverified"
     },
     {
       "title": "Merit Scholarships",
@@ -257,7 +265,8 @@
         "fieldOfStudy": "Computer Science",
         "country": "Nigeria",
         "fundingNeeded": true
-      }
+      },
+      "eligibilityConfidence": "Verified"
     },
     {
       "title": "Francesca Norris Memorial Scholarship",
@@ -286,7 +295,8 @@
         "fieldOfStudy": "Computer Science",
         "country": "Nigeria",
         "fundingNeeded": true
-      }
+      },
+      "eligibilityConfidence": "Verified"
     }
   ],
   "digest": {

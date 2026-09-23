@@ -30,6 +30,7 @@ test('deadline in the past fails as Not Eligible, no LLM call made', async () =>
 
     assert.equal(result.hardRequirementsMet, false);
     assert.equal(result.eligibilityMatch, 'Not Eligible');
+    assert.equal(result.eligibilityConfidence, 'Verified'); // hard checks are code, always verified
     assert.match(result.missingRequirements[0], /Deadline has passed/);
 });
 
@@ -201,11 +202,18 @@ test('the prompt explicitly asks the LLM to check field-of-study fit, not just b
     assert.ok(capturedPrompt.includes('"Law"'));
 });
 
-test('a real field-of-study mismatch (Agriculture-only listing, Law student) is flagged as Partial, not silently passed as Eligible', async () => {
+test('a real field-of-study mismatch (Agriculture-only listing, Law student) is flagged as Not Eligible, not Partial', async () => {
     // End-to-end: simulates what a correctly-behaving LLM should return
     // when given the field-of-study-aware prompt — confirms the resulting
     // eligibilityMatch actually reflects the mismatch, not just that the
     // prompt asked the right question.
+    //
+    // Regression: a real production run showed this landing on "Partial"
+    // even though its own reasoning said "creating a definitive mismatch" —
+    // an explicit, unconditional field-of-study exclusion is a real
+    // disqualification, not a "maybe". fieldOfStudyMismatch is now a
+    // separate signal from hasUnresolvedCriteria specifically so this can't
+    // be conflated with a genuinely ambiguous preference criterion.
     const listing = {
         title: 'Agriculture scholarship',
         deadline: null,
@@ -216,8 +224,10 @@ test('a real field-of-study mismatch (Agriculture-only listing, Law student) is 
     const fakeGenerateContent = async () => ({
         response: {
             text: () => JSON.stringify({
-                hasUnresolvedCriteria: true,
-                missingOrUnclear: ['Scholarship is restricted to Agriculture/Agronomy students; profile states Law, which does not match.'],
+                fieldOfStudyMismatch: true,
+                fieldOfStudyMismatchReason: 'Scholarship is restricted to Agriculture/Agronomy students; profile states Law, which does not match.',
+                hasUnresolvedCriteria: false,
+                missingOrUnclear: [],
                 reasoning: 'The listing is explicitly restricted to Agriculture/Agronomy, which the student\'s field of study does not match.',
                 actionSteps: [],
             }),
@@ -227,17 +237,52 @@ test('a real field-of-study mismatch (Agriculture-only listing, Law student) is 
     const result = await matchListing(listing, profile, fakeGenerateContent);
 
     assert.equal(result.hardRequirementsMet, true); // field-of-study isn't a hard check
-    assert.equal(result.eligibilityMatch, 'Partial');
+    assert.equal(result.eligibilityMatch, 'Not Eligible');
+    assert.equal(result.eligibilityConfidence, 'Verified');
     assert.ok(result.missingRequirements.some((r) => /Agriculture/i.test(r)));
 });
 
-test('no eligibility text at all short-circuits to Eligible without calling the LLM', async () => {
+test('a genuinely ambiguous preference criterion (not a field-of-study exclusion) is still Partial', async () => {
+    const listing = {
+        title: 'Community Scholarship',
+        deadline: null,
+        eligibility: 'Nationality: Any. Preference given to applicants with volunteer experience.',
+    };
+    const profile = { educationLevel: 'Bachelors', country: 'Nigeria', fieldOfStudy: 'Computer Science' };
+
+    const fakeGenerateContent = async () => ({
+        response: {
+            text: () => JSON.stringify({
+                fieldOfStudyMismatch: false,
+                fieldOfStudyMismatchReason: '',
+                hasUnresolvedCriteria: true,
+                missingOrUnclear: ['Preference for volunteer experience is unconfirmed.'],
+                reasoning: 'No field restriction, but volunteer experience preference cannot be confirmed.',
+                actionSteps: ['Add any volunteer or community work to your application.'],
+            }),
+        },
+    });
+
+    const result = await matchListing(listing, profile, fakeGenerateContent);
+
+    assert.equal(result.eligibilityMatch, 'Partial');
+    assert.equal(result.eligibilityConfidence, 'Verified');
+});
+
+test('no eligibility text at all short-circuits to Eligible without calling the LLM, marked Unverified', async () => {
+    // Regression: a real production run showed 16/18 "Eligible" results with
+    // this exact fallback reasoning still badged "High confidence" — this
+    // eligibilityConfidence field exists so the UI can show plainly that
+    // eligibility itself was never actually checked here, independent of
+    // trustConfidence (which measures something else: search-evidence
+    // strength for the scam check).
     const listing = { title: 'Vague listing', deadline: null, eligibility: null };
     const profile = { educationLevel: 'PhD', country: 'Nigeria', fieldOfStudy: 'Computer Science' };
 
     const result = await matchListing(listing, profile, unusedGenerateContent);
 
     assert.equal(result.eligibilityMatch, 'Eligible');
+    assert.equal(result.eligibilityConfidence, 'Unverified');
 });
 
 test('malformed LLM JSON response falls back gracefully instead of crashing', async () => {

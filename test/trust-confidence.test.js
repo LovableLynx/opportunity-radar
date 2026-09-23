@@ -45,6 +45,27 @@ test('search found multiple results is High confidence', () => {
     assert.equal(result.trustConfidence, 'High');
 });
 
+test('regression: strong search evidence alone does not reach High confidence when eligibility text was never fetched', () => {
+    // A real production run caught this: a listing whose detail page was
+    // never scraped (eligibility: null) still showed "High confidence"
+    // purely because its title got 2+ distinct-domain search hits.
+    // Search-result count measures how well-corroborated the listing's
+    // EXISTENCE is, not whether its eligibility criteria were ever read —
+    // those are different questions, and "High confidence" should mean the
+    // listing was actually verified, not just that it's mentioned online.
+    const listing = { title: 'Never-enriched Listing', description: 'A short scraped snippet.', eligibility: null };
+    const searchEvidence = { independentResultsFound: true, secondarySourceFound: true, resultCount: 5 };
+    const result = scoreListing(listing, searchEvidence);
+    assert.equal(result.trustConfidence, 'Medium'); // capped below High
+});
+
+test('strong search evidence plus real eligibility text does reach High confidence', () => {
+    const listing = { title: 'Fully Checked Listing', description: 'text', eligibility: 'Nationality: Any.' };
+    const searchEvidence = { independentResultsFound: true, secondarySourceFound: true, resultCount: 5 };
+    const result = scoreListing(listing, searchEvidence);
+    assert.equal(result.trustConfidence, 'High');
+});
+
 test('two Low Risk listings can have different confidence, the whole point of this field', () => {
     const wellEvidenced = scoreListing(
         { title: 'A', description: 'text', eligibility: 'text' },

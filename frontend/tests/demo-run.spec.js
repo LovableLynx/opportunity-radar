@@ -39,7 +39,11 @@ test.describe('demo run', () => {
     const firstCard = page.locator('.listing-card').first();
     await expect(firstCard.locator('.badge-eligible, .badge-partial, .badge-noteligible')).toHaveCount(1);
     await expect(firstCard.locator('.badge-lowrisk, .badge-someconcerns, .badge-highrisk')).toHaveCount(1);
-    await expect(firstCard.locator('.badge-confidence')).toBeVisible();
+    // Two distinct confidence badges: eligibilityConfidence (next to the
+    // eligibility verdict) and trustConfidence (next to the risk verdict) —
+    // kept separate so "High confidence" never implies eligibility was
+    // checked when only the trust/scam evidence was strong.
+    await expect(firstCard.locator('.badge-confidence')).toHaveCount(2);
   });
 
   test('Not Eligible listings show their missing requirements', async ({ page }) => {

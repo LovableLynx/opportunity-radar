@@ -51,13 +51,17 @@ const GPA_PERCENT_PATTERN = /^\d+(\.\d+)?\s*%$/; // "85%"
 const GPA_BARE_NUMBER_PATTERN = /^\d+(\.\d+)?$/; // "3.6" or "85", scale-checked below
 const GPA_CLASSIFICATION_PATTERN = /first class|second class|upper|lower|distinction|merit|pass|honou?rs|cgpa/i;
 
-// A bare number's scale is genuinely ambiguous below 30 — "8" could mean
-// 8/10, a typo, or something else entirely, and real GPA scales (4.0, 5.0,
-// 10.0) never reach 30, so nobody means "30" as a raw GPA. Above that
-// threshold a bare number can only sensibly be a percentage grade (a real
-// exam/course percentage), so it's accepted without requiring the % sign.
-// Below it, the student needs to be explicit ("8/10" or "8%") rather than
+// A bare number's scale is genuinely ambiguous in the 5-30 range — "8" could
+// mean 8/10, a typo, or something else entirely. Below 5, though, it isn't
+// ambiguous in practice: CGPA out of 5.00 is the standard scale at Nigerian
+// universities (BSc, MSc, and PhD alike), so a real user typing "4.5" means
+// 4.5/5.00, not a typo. Real GPA scales (4.0, 5.0, 10.0) never reach 30, so
+// nobody means "30" as a raw GPA either. Above that threshold a bare number
+// can only sensibly be a percentage grade (a real exam/course percentage),
+// so it's accepted without requiring the % sign. In the ambiguous 5-30
+// middle, the student needs to be explicit ("8/10" or "8%") rather than
 // leaving us to guess.
+const BARE_NUMBER_UNAMBIGUOUS_LOW_CEILING = 5;
 const BARE_NUMBER_UNAMBIGUOUS_FLOOR = 30;
 
 function isPlausibleGpa(value) {
@@ -69,10 +73,11 @@ function isPlausibleGpa(value) {
 
     if (GPA_BARE_NUMBER_PATTERN.test(trimmed)) {
         const n = parseFloat(trimmed);
-        // "00"/"0" is technically in range but functionally meaningless as
+        // "0"/"0.0" is technically in range but functionally meaningless as
         // a grade someone would report, and anything past 100 isn't a
         // sensible percentage either.
-        return n > BARE_NUMBER_UNAMBIGUOUS_FLOOR && n <= 100;
+        if (n <= 0) return false;
+        return n <= BARE_NUMBER_UNAMBIGUOUS_LOW_CEILING || (n > BARE_NUMBER_UNAMBIGUOUS_FLOOR && n <= 100);
     }
 
     return false;

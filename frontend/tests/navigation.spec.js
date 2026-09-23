@@ -81,8 +81,10 @@ test.describe('landing and navigation', () => {
     // Matches the classification pattern (so it passes the client-side
     // format check), but exceeds the server's 100-char cap, which the
     // client never checks at all — a real, deliberate gap, not a bug, that
-    // makes this a genuine test of the server round-trip.
-    await page.fill('#gpaOrGrade', `First Class ${'x'.repeat(100)}`);
+    // makes this a genuine test of the server round-trip. Uses the "Other"
+    // GPA format, the one path that still accepts arbitrary free text.
+    await page.selectOption('#gpaFormat', 'other');
+    await page.fill('#gpaOther', `First Class ${'x'.repeat(100)}`);
     // Blur the last-filled field and let its live-validation DOM update
     // (app.js's blur listeners insert/resize error text, shifting layout)
     // fully settle before clicking. Without this, the click can race the
@@ -90,7 +92,7 @@ test.describe('landing and navigation', () => {
     // the blur handler moves it, and the synthetic click lands on empty
     // space. A real user's mouse-movement time never has this problem;
     // only a scripted, instantaneous click can hit the gap.
-    await page.locator('#gpaOrGrade').blur();
+    await page.locator('#gpaOther').blur();
     await page.waitForTimeout(300);
     await page.getByRole('button', { name: 'Run Opportunity Radar' }).click();
 
@@ -143,24 +145,41 @@ test.describe('landing and navigation', () => {
     await expect(page.locator('#country')).toHaveValue('Nigeria');
   });
 
-  test('an ambiguous bare gpaOrGrade number shows a live error asking for a scale', async ({ page }) => {
+  test('the GPA format picker shows the matching field and validates its range', async ({ page }) => {
+    // Regression: gpaOrGrade used to be one free-text box, and a bare "4.5"
+    // (a real Nigerian CGPA out of 5.00) was wrongly flagged as ambiguous.
+    // Picking the scale first removes that guesswork: the number field only
+    // needs to check its value is in range for the scale actually chosen.
     await page.goto('/');
     await page.getByRole('button', { name: 'Check my eligibility' }).click();
 
-    await page.fill('#gpaOrGrade', '8');
-    await page.locator('#gpaOrGrade').blur();
+    await expect(page.locator('#field-gpa-number')).toBeHidden();
+    await page.selectOption('#gpaFormat', 'cgpa5');
+    await expect(page.locator('#field-gpa-number')).toBeVisible();
+    await expect(page.locator('#field-gpa-classification')).toBeHidden();
+    await expect(page.locator('#field-gpa-other')).toBeHidden();
+
+    // Out of range for a /5.0 scale.
+    await page.fill('#gpaNumber', '8');
+    await page.locator('#gpaNumber').blur();
     await expect(page.locator('#error-gpaOrGrade')).toBeVisible();
-    await expect(page.locator('#error-gpaOrGrade')).toContainText('needs its scale');
+    await expect(page.locator('#error-gpaOrGrade')).toContainText('between 0 and 5');
 
-    // Made explicit, it's accepted.
-    await page.fill('#gpaOrGrade', '8/10');
-    await page.locator('#gpaOrGrade').blur();
+    // A real Nigerian CGPA out of 5.00, previously rejected as "ambiguous".
+    await page.fill('#gpaNumber', '4.5');
+    await page.locator('#gpaNumber').blur();
     await expect(page.locator('#error-gpaOrGrade')).toBeHidden();
 
-    // An unambiguous percentage-range number needs no scale.
-    await page.fill('#gpaOrGrade', '85');
-    await page.locator('#gpaOrGrade').blur();
+    // Switching format swaps the visible field and the validation range.
+    await page.selectOption('#gpaFormat', 'percentage');
+    await expect(page.locator('#field-gpa-number')).toBeVisible();
+    await page.fill('#gpaNumber', '85');
+    await page.locator('#gpaNumber').blur();
     await expect(page.locator('#error-gpaOrGrade')).toBeHidden();
+
+    await page.selectOption('#gpaFormat', 'classification');
+    await expect(page.locator('#field-gpa-classification')).toBeVisible();
+    await expect(page.locator('#field-gpa-number')).toBeHidden();
   });
 
   test('submit-time validation blocks and highlights an implausible field independent of the live blur checks', async ({ page }) => {

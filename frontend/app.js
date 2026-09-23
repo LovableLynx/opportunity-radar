@@ -218,6 +218,10 @@ const GPA_FRACTION_PATTERN = /^\d+(\.\d+)?\s*\/\s*\d+(\.\d+)?$/;
 const GPA_PERCENT_PATTERN = /^\d+(\.\d+)?\s*%$/;
 const GPA_BARE_NUMBER_PATTERN = /^\d+(\.\d+)?$/;
 const GPA_CLASSIFICATION_PATTERN = /first class|second class|upper|lower|distinction|merit|pass|honou?rs|cgpa/i;
+// Below 5, a bare number isn't ambiguous in practice: CGPA out of 5.00 is
+// the standard scale at Nigerian universities, so "4.5" means 4.5/5.00, not
+// a typo. Keep in sync with api/start-run.js's isPlausibleGpa.
+const GPA_BARE_NUMBER_UNAMBIGUOUS_LOW_CEILING = 5;
 const GPA_BARE_NUMBER_UNAMBIGUOUS_FLOOR = 30;
 
 function plausibleGpaError(value) {
@@ -229,6 +233,8 @@ function plausibleGpaError(value) {
   }
   if (GPA_BARE_NUMBER_PATTERN.test(trimmed)) {
     const n = parseFloat(trimmed);
+    if (n <= 0) return 'That doesn\'t look like a real grade.';
+    if (n <= GPA_BARE_NUMBER_UNAMBIGUOUS_LOW_CEILING) return null;
     if (n > GPA_BARE_NUMBER_UNAMBIGUOUS_FLOOR && n <= 100) return null;
     if (n <= GPA_BARE_NUMBER_UNAMBIGUOUS_FLOOR) {
       return `A number that low needs its scale, like "${trimmed}/10" or "${trimmed}%".`;
@@ -238,15 +244,28 @@ function plausibleGpaError(value) {
   return 'That doesn\'t look like a real grade (try e.g. "3.6/4.0", "85%", or "First Class").';
 }
 
+// gpaOrGrade's error banner lives inside field-gpa-number in the markup,
+// but needs to highlight whichever sub-field (number, classification,
+// other) the format picker currently shows, since there's no single
+// #gpaOrGrade element anymore.
+function gpaErrorTargetId() {
+  const format = document.getElementById('gpaFormat').value;
+  if (format === 'classification') return 'gpaClassification';
+  if (format === 'other') return 'gpaOther';
+  return 'gpaNumber';
+}
+
 function showFieldError(id, message) {
-  document.getElementById(id).closest('.field').classList.add('has-error');
+  const targetId = id === 'gpaOrGrade' ? gpaErrorTargetId() : id;
+  document.getElementById(targetId).closest('.field').classList.add('has-error');
   const error = document.getElementById(`error-${id}`);
   if (message) error.textContent = message;
   error.hidden = false;
 }
 
 function clearFieldError(id) {
-  document.getElementById(id).closest('.field').classList.remove('has-error');
+  const targetId = id === 'gpaOrGrade' ? gpaErrorTargetId() : id;
+  document.getElementById(targetId).closest('.field').classList.remove('has-error');
   document.getElementById(`error-${id}`).hidden = true;
 }
 
@@ -256,6 +275,80 @@ function clearFieldErrors() {
     clearFieldError(id);
   }
   document.getElementById('error-cvFile').hidden = true;
+}
+
+// The GPA scale is now picked explicitly (CGPA/4.0, CGPA/5.0, percentage,
+// classification, or "other" free text), instead of asking a student to
+// type a bare number and guessing what scale they meant. That guessing is
+// exactly what caused a real false rejection: a Nigerian student's "4.5"
+// (a real CGPA out of 5.00) was flagged as "too low, needs its scale" by
+// the old ambiguity heuristic. Picking the format first removes the
+// ambiguity instead of trying to out-guess every regional grading system.
+const GPA_FORMAT_FIELDS = {
+  cgpa4: 'field-gpa-number',
+  cgpa5: 'field-gpa-number',
+  percentage: 'field-gpa-number',
+  classification: 'field-gpa-classification',
+  other: 'field-gpa-other',
+};
+const GPA_NUMBER_LABELS = {
+  cgpa4: 'Your GPA (out of 4.0)',
+  cgpa5: 'Your GPA (out of 5.0)',
+  percentage: 'Your percentage',
+};
+const GPA_NUMBER_PLACEHOLDERS = {
+  cgpa4: 'e.g. 3.6',
+  cgpa5: 'e.g. 4.5',
+  percentage: 'e.g. 72',
+};
+
+function updateGpaFormatFields() {
+  const format = document.getElementById('gpaFormat').value;
+  for (const fieldId of new Set(Object.values(GPA_FORMAT_FIELDS))) {
+    document.getElementById(fieldId).hidden = GPA_FORMAT_FIELDS[format] !== fieldId;
+  }
+  if (GPA_NUMBER_LABELS[format]) {
+    document.getElementById('label-gpa-number').textContent = GPA_NUMBER_LABELS[format];
+    document.getElementById('gpaNumber').placeholder = GPA_NUMBER_PLACEHOLDERS[format];
+  }
+  clearFieldError('gpaOrGrade');
+}
+
+document.getElementById('gpaFormat').addEventListener('change', updateGpaFormatFields);
+updateGpaFormatFields();
+
+// Builds the actual gpaOrGrade string the API expects, from whichever
+// sub-field is currently showing. Returns '' when nothing usable was
+// entered (format left on "Skip this", or a sub-field left blank).
+function composeGpaOrGrade() {
+  const format = document.getElementById('gpaFormat').value;
+  if (format === 'cgpa4' || format === 'cgpa5' || format === 'percentage') {
+    const n = document.getElementById('gpaNumber').value.trim();
+    if (!n) return '';
+    if (format === 'cgpa4') return `${n}/4.0`;
+    if (format === 'cgpa5') return `${n}/5.0`;
+    return `${n}%`;
+  }
+  if (format === 'classification') {
+    return document.getElementById('gpaClassification').value;
+  }
+  if (format === 'other') {
+    return document.getElementById('gpaOther').value.trim();
+  }
+  return '';
+}
+
+// A bare number needs only a plausible-range check here: the scale is
+// already known from the picker, so there's no ambiguity left to resolve
+// the way plausibleGpaError (still used for "other") has to guess at.
+function plausibleGpaNumberError(value, max) {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return 'Enter your GPA.';
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n <= 0 || n > max) {
+    return `Enter a number between 0 and ${max}.`;
+  }
+  return null;
 }
 
 // Populate the country dropdown from countries.js (loaded as a plain global
@@ -280,16 +373,28 @@ document.getElementById('fieldOfStudy').addEventListener('blur', (e) => {
 // countries only (see countries.js), so free-text gibberish like "Nifrd"
 // can no longer be entered in the first place.
 document.getElementById('country').addEventListener('change', () => clearFieldError('country'));
-document.getElementById('gpaOrGrade').addEventListener('blur', (e) => {
-  const message = plausibleGpaError(e.target.value);
+function checkGpaField() {
+  const format = document.getElementById('gpaFormat').value;
+  let message = null;
+  if (format === 'cgpa4') message = plausibleGpaNumberError(document.getElementById('gpaNumber').value, 4.0);
+  else if (format === 'cgpa5') message = plausibleGpaNumberError(document.getElementById('gpaNumber').value, 5.0);
+  else if (format === 'percentage') message = plausibleGpaNumberError(document.getElementById('gpaNumber').value, 100);
+  else if (format === 'other') message = plausibleGpaError(document.getElementById('gpaOther').value);
+
   if (message) showFieldError('gpaOrGrade', message);
   else clearFieldError('gpaOrGrade');
-});
+  return !message;
+}
+
+document.getElementById('gpaNumber').addEventListener('blur', checkGpaField);
+document.getElementById('gpaOther').addEventListener('blur', checkGpaField);
 // Clear an error as soon as the student starts fixing that field, rather
 // than making them wait for another blur to see it go away.
-for (const id of ['fieldOfStudy', 'gpaOrGrade']) {
-  document.getElementById(id).addEventListener('input', () => clearFieldError(id));
+document.getElementById('fieldOfStudy').addEventListener('input', () => clearFieldError('fieldOfStudy'));
+for (const id of ['gpaNumber', 'gpaOther']) {
+  document.getElementById(id).addEventListener('input', () => clearFieldError('gpaOrGrade'));
 }
+document.getElementById('gpaClassification').addEventListener('change', () => clearFieldError('gpaOrGrade'));
 
 function validateForm() {
   let hasError = false;
@@ -308,9 +413,13 @@ function validateForm() {
     hasError = true;
   }
 
-  const gpaError = plausibleGpaError(document.getElementById('gpaOrGrade').value);
-  if (gpaError) {
-    showFieldError('gpaOrGrade', gpaError);
+  // gpaOrGrade is optional overall (format left on "Skip this" is fine),
+  // but once a format is picked, that format's own field must check out.
+  const gpaFormat = document.getElementById('gpaFormat').value;
+  if (gpaFormat === 'cgpa4' || gpaFormat === 'cgpa5' || gpaFormat === 'percentage' || gpaFormat === 'other') {
+    if (!checkGpaField()) hasError = true;
+  } else if (gpaFormat === 'classification' && !document.getElementById('gpaClassification').value) {
+    showFieldError('gpaOrGrade', 'Select your classification.');
     hasError = true;
   }
 
@@ -345,7 +454,7 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
     fieldOfStudy: document.getElementById('fieldOfStudy').value,
     country: document.getElementById('country').value,
     fundingNeeded: document.getElementById('fundingNeeded').checked,
-    gpaOrGrade: document.getElementById('gpaOrGrade').value || undefined,
+    gpaOrGrade: composeGpaOrGrade() || undefined,
     cvText: cvTextToSend,
   };
 

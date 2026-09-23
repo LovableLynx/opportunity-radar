@@ -150,18 +150,28 @@ test('a bare gpaOrGrade number above 30 is accepted as an unambiguous percentage
     assertValid(validProfile({ gpaOrGrade: '72.5' }));
 });
 
-test('a bare gpaOrGrade number at or below 30 is rejected as ambiguous, needs an explicit scale', () => {
+test('a bare gpaOrGrade number in the 5-30 range is rejected as ambiguous, needs an explicit scale', () => {
     // Regression: "8" alone previously passed as "valid" even though it
     // could mean 8/10, a typo, or something else entirely — a real GPA
     // scale (4.0, 5.0, 10.0) never reaches 30, so nobody means a bare "8"
-    // or "3.6" as a percentage, and it's ambiguous without a stated scale.
+    // as a percentage, and it's ambiguous without a stated scale.
     assertInvalid(validProfile({ gpaOrGrade: '8' }), 'gpaOrGrade');
-    assertInvalid(validProfile({ gpaOrGrade: '3.6' }), 'gpaOrGrade');
     assertInvalid(validProfile({ gpaOrGrade: '30' }), 'gpaOrGrade');
     // Made explicit with a scale, the same numbers are fine.
     assertValid(validProfile({ gpaOrGrade: '8/10' }));
-    assertValid(validProfile({ gpaOrGrade: '3.6/4.0' }));
     assertValid(validProfile({ gpaOrGrade: '8%' }));
+});
+
+test('a bare gpaOrGrade number at or below 5 is accepted, unambiguous as CGPA out of 5.00', () => {
+    // Regression: Nigerian universities (BSc, MSc, and PhD alike) report
+    // CGPA out of 5.00 as standard, so a bare "4.5" is a real, common grade,
+    // not an ambiguous typo — it was wrongly rejected before this fix.
+    assertValid(validProfile({ gpaOrGrade: '4.5' }));
+    assertValid(validProfile({ gpaOrGrade: '3.6' }));
+    assertValid(validProfile({ gpaOrGrade: '5' }));
+    assertValid(validProfile({ gpaOrGrade: '5.0' }));
+    // Still fine when made explicit with a scale.
+    assertValid(validProfile({ gpaOrGrade: '3.6/4.0' }));
 });
 
 test('gpaOrGrade rejects zero, negative, over-100, and nonsense values', () => {

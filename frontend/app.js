@@ -331,9 +331,19 @@ updateGpaFormatFields();
 
 // WAEC/NECO subjects: a variable-length list of subject + grade rows,
 // rather than one free-text box a student has to guess the format of.
+// WAEC_MIN_ROWS is the minimum number of COMPLETE (subject + grade) rows
+// required to submit, matching the common minimum-credit threshold
+// scholarships check for. WAEC_MAX_ROWS caps the list at what a real
+// WAEC/NECO result slip holds; result slips rarely list more than 9.
 const WAEC_GRADES = ['A1', 'B2', 'B3', 'C4', 'C5', 'C6', 'D7', 'E8', 'F9'];
 const WAEC_MIN_ROWS = 5;
+const WAEC_MAX_ROWS = 9;
 let waecRowCount = 0;
+
+function updateAddWaecButtonVisibility() {
+  const rowCount = document.querySelectorAll('#waec-subject-rows .waec-subject-row').length;
+  document.getElementById('btn-add-waec-subject').hidden = rowCount >= WAEC_MAX_ROWS;
+}
 
 function addWaecSubjectRow(subjectValue = '') {
   waecRowCount += 1;
@@ -372,27 +382,39 @@ function addWaecSubjectRow(subjectValue = '') {
   removeBtn.addEventListener('click', () => {
     row.remove();
     clearFieldError('gpaOrGrade');
+    updateAddWaecButtonVisibility();
   });
 
   row.append(subjectInput, gradeSelect, removeBtn);
   document.getElementById('waec-subject-rows').appendChild(row);
+  updateAddWaecButtonVisibility();
 }
 
 document.getElementById('btn-add-waec-subject').addEventListener('click', () => addWaecSubjectRow());
 for (let i = 0; i < WAEC_MIN_ROWS; i++) addWaecSubjectRow();
 
-// A row counts once its student has entered a subject name; a grade left on
-// "Grade" is still incomplete, caught by checkGpaField.
-function waecSubjectRows() {
-  return [...document.querySelectorAll('#waec-subject-rows .waec-subject-row')]
-    .filter((row) => row.querySelector('.waec-subject-name').value.trim());
+// A row is "started" once either its subject or its grade has something in
+// it; a started-but-incomplete row (only one of the two filled) is flagged,
+// but an untouched blank row is not — otherwise every pre-added empty row
+// would show as an error before the student has typed anything.
+function waecRowState(row) {
+  const subject = row.querySelector('.waec-subject-name').value.trim();
+  const grade = row.querySelector('.waec-subject-grade').value;
+  if (subject && grade) return 'complete';
+  if (subject || grade) return 'partial';
+  return 'blank';
 }
 
 function plausibleWaecError() {
-  const rows = waecSubjectRows();
-  if (rows.length === 0) return 'Enter at least one subject.';
-  const missingGrade = rows.some((row) => !row.querySelector('.waec-subject-grade').value);
-  if (missingGrade) return 'Select a grade for every subject you entered.';
+  const rows = [...document.querySelectorAll('#waec-subject-rows .waec-subject-row')];
+  const states = rows.map(waecRowState);
+  if (states.some((state) => state === 'partial')) {
+    return 'Every subject you started needs both a name and a grade.';
+  }
+  const completeCount = states.filter((state) => state === 'complete').length;
+  if (completeCount < WAEC_MIN_ROWS) {
+    return `Enter at least ${WAEC_MIN_ROWS} subjects with grades.`;
+  }
   return null;
 }
 
@@ -410,11 +432,12 @@ function composeGpaOrGrade() {
     return document.getElementById('gpaClassification').value;
   }
   if (format === 'waec') {
-    return waecSubjectRows()
+    return [...document.querySelectorAll('#waec-subject-rows .waec-subject-row')]
+      .filter((row) => waecRowState(row) === 'complete')
       .map((row) => {
         const subject = row.querySelector('.waec-subject-name').value.trim();
         const grade = row.querySelector('.waec-subject-grade').value;
-        return grade ? `${subject}: ${grade}` : subject;
+        return `${subject}: ${grade}`;
       })
       .join(', ');
   }
@@ -468,7 +491,17 @@ function checkGpaField() {
 
   if (message) showFieldError('gpaOrGrade', message);
   else clearFieldError('gpaOrGrade');
+  if (format === 'waec') highlightPartialWaecRows();
   return !message;
+}
+
+// Marks only rows a student actually started but left half-filled (subject
+// with no grade, or grade with no subject); an untouched blank row, or a
+// fully complete one, gets no red border.
+function highlightPartialWaecRows() {
+  for (const row of document.querySelectorAll('#waec-subject-rows .waec-subject-row')) {
+    row.classList.toggle('has-error', waecRowState(row) === 'partial');
+  }
 }
 
 document.getElementById('gpaNumber').addEventListener('blur', checkGpaField);

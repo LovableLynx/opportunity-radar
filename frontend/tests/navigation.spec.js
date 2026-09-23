@@ -197,20 +197,42 @@ test.describe('landing and navigation', () => {
 
     await page.selectOption('#gpaFormat', 'waec');
     await expect(page.locator('#field-gpa-waec')).toBeVisible();
-    // 5 subject rows are pre-added; an empty grade on a named subject fails.
+    // 5 subject rows are pre-added, untouched, so no error shows yet.
     const rows = page.locator('#waec-subject-rows .waec-subject-row');
     await expect(rows).toHaveCount(5);
+    await expect(page.locator('#error-gpaOrGrade')).toBeHidden();
+
+    // A subject name with no grade selected is a "partial" row: flagged on
+    // its own, without turning every untouched blank row red too.
     await rows.nth(0).locator('.waec-subject-name').fill('English Language');
     await rows.nth(0).locator('.waec-subject-name').blur();
     await expect(page.locator('#error-gpaOrGrade')).toBeVisible();
-    await expect(page.locator('#error-gpaOrGrade')).toContainText('grade for every subject');
+    await expect(page.locator('#error-gpaOrGrade')).toContainText('name and a grade');
+    await expect(rows.nth(0)).toHaveClass(/has-error/);
+    await expect(rows.nth(1)).not.toHaveClass(/has-error/);
 
     await rows.nth(0).locator('.waec-subject-grade').selectOption('B3');
+    // Still below the 5-complete-subject minimum with just one filled in.
+    await expect(page.locator('#error-gpaOrGrade')).toBeVisible();
+    await expect(page.locator('#error-gpaOrGrade')).toContainText('at least 5 subjects');
+    await expect(rows.nth(0)).not.toHaveClass(/has-error/);
+
+    // Filling the remaining 4 pre-added rows meets the minimum.
+    const subjects = ['Mathematics', 'Physics', 'Chemistry', 'Biology'];
+    for (let i = 1; i < 5; i++) {
+      await rows.nth(i).locator('.waec-subject-name').fill(subjects[i - 1]);
+      await rows.nth(i).locator('.waec-subject-grade').selectOption('B3');
+    }
+    await rows.nth(4).locator('.waec-subject-grade').blur();
     await expect(page.locator('#error-gpaOrGrade')).toBeHidden();
 
-    // Adding a subject grows the row list.
-    await page.getByRole('button', { name: '+ Add subject' }).click();
-    await expect(rows).toHaveCount(6);
+    // Adding a subject grows the row list, up to a cap of 9; the button
+    // disappears once that cap is reached instead of growing forever.
+    for (let i = 0; i < 4; i++) {
+      await page.getByRole('button', { name: '+ Add subject' }).click();
+    }
+    await expect(rows).toHaveCount(9);
+    await expect(page.getByRole('button', { name: '+ Add subject' })).toBeHidden();
 
     // Switching back to a university level resets a hidden-now selection.
     await page.selectOption('#educationLevel', 'Masters');

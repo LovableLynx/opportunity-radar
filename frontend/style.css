@@ -277,11 +277,19 @@ main { padding-inline: 20px; }
   padding: 4px 8px;
 }
 .waec-subject-row .btn-remove-subject:hover { color: var(--danger); }
+.waec-subject-row.has-error input[type="text"],
+.waec-subject-row.has-error select {
+  border-color: var(--danger);
+}
 
 .field.has-error input[type="text"],
 .field.has-error select,
 .field.has-error textarea {
   border-color: var(--danger);
+}
+#field-gpa-waec.has-error input[type="text"],
+#field-gpa-waec.has-error select {
+  border-color: inherit;
 }
 .field-error {
   color: var(--danger);

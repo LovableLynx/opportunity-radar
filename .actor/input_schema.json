@@ -67,11 +67,28 @@
       "description": "Whether the student needs full or partial funding.",
       "default": true
     },
+    "gpaFormat": {
+      "title": "GPA / grade format (optional)",
+      "type": "string",
+      "editor": "select",
+      "enum": ["", "cgpa4", "cgpa5", "percentage", "classification", "waec", "other"],
+      "enumTitles": [
+        "Skip this",
+        "CGPA out of 4.0",
+        "CGPA out of 5.0",
+        "Percentage",
+        "Classification (First Class, Second Class...)",
+        "WAEC / NECO grades",
+        "Other"
+      ],
+      "description": "Pick the scale your grade below is in. This matches the format picker on the website — picking a scale here means the number below is read correctly instead of guessed at.",
+      "default": ""
+    },
     "gpaOrGrade": {
-      "title": "GPA or grade (optional)",
+      "title": "GPA / grade value (optional)",
       "type": "string",
       "editor": "textfield",
-      "description": "A fraction (3.6/4.0), a percentage (85%), or a classification (First Class, Second Class Upper). A bare number under 30 needs its scale stated explicitly (e.g. 8/10, not just 8), since a raw GPA scale never reaches 30 and a bare number that low is ambiguous.",
+      "description": "The number or grade itself, matching the format picked above: CGPA → just the number (e.g. 4.5); Percentage → just the number (e.g. 72); Classification → e.g. First Class, Second Class Upper; WAEC/NECO → e.g. \"English: B3, Mathematics: B2\"; Other → any format, e.g. 8/10.",
       "nullable": true
     },
     "cvText": {

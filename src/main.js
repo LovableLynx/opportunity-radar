@@ -12,6 +12,7 @@ import { urgencyFor } from './urgency.js';
 import { detectCrossListingPatterns } from './cross-listing-patterns.js';
 import { loadLearnedPatterns, saveLearnedPatterns, patternsFromPhrases } from './learned-patterns.js';
 import { compareListings } from './compare-listings.js';
+import { composeGpaOrGrade } from './gpa-format.js';
 
 await Actor.init();
 
@@ -33,8 +34,19 @@ if (input.compareListingA && input.compareListingB) {
     }
     await Actor.exit();
 } else {
-    const { educationLevel = '', fieldOfStudy = '', country = '', fundingNeeded = true, gpaOrGrade = null, cvText = null } = input;
-    const profile = { educationLevel, fieldOfStudy, country, fundingNeeded, gpaOrGrade };
+    const { educationLevel = '', fieldOfStudy = '', country = '', fundingNeeded = true, gpaFormat = '', gpaOrGrade = null, cvText = null } = input;
+
+    // The Actor's input form (Console, direct API, MCP) is a separate entry
+    // point from the website and previously had zero GPA validation at all —
+    // gpaFormat lets a Console/API caller pick a scale the same way the
+    // website's GPA picker does, composed here into the single gpaOrGrade
+    // string the rest of the pipeline expects. gpaFormat left blank behaves
+    // exactly as before this feature existed.
+    const { value: composedGpaOrGrade, error: gpaError } = composeGpaOrGrade(gpaFormat, gpaOrGrade);
+    if (gpaError) {
+        console.log(`Invalid GPA input, ignoring gpaOrGrade for this run: ${gpaError}`);
+    }
+    const profile = { educationLevel, fieldOfStudy, country, fundingNeeded, gpaOrGrade: gpaError ? null : (composedGpaOrGrade || null) };
 
     const client = await Actor.newClient();
 

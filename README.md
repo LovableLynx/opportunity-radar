@@ -112,9 +112,11 @@ in Apify Console, not in this repo.
 
 ## Team
 
-- **Oluwadarasimi (LovableLynx)** — project lead, backend, QA / test automation
-- **Peace** — frontend
-- **Temilade** — design
+| Name | Role |
+| --- | --- |
+| Oluwadarasimi (LovableLynx) | Project lead, backend, QA / test automation |
+| Peace | Frontend |
+| Temilade | Design |
 
 ## Further reading
 

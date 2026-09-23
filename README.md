@@ -115,4 +115,3 @@ in Apify Console, not in this repo.
 The deeper technical write-ups, architecture decisions, what's been tested
 and how, background on specific tradeoffs, live in the PDFs in this repo
 and in code comments near the relevant logic, rather than in this README.
-# last verified: 2026-09-23 05:01 UTC

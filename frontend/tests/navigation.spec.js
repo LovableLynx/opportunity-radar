@@ -48,22 +48,27 @@ test.describe('landing and navigation', () => {
     await expect(page.locator('#form-error-banner')).toBeHidden();
   });
 
-  test('a server-side validation rejection (e.g. implausible field of study) sends the user back to the form with a clear message, not the generic error screen', async ({ page }) => {
+  test('a server-side validation rejection sends the user back to the form with a clear message, not the generic error screen', async ({ page }) => {
     // Regression test: previously, a 400 from /api/start-run's own
-    // validation (see start-run.js's validateProfile, which catches things
-    // client-side checks can't, like fieldOfStudy="hy") sent the user
-    // through the loading spinner and into the generic "We couldn't
-    // complete your search" error screen — the same screen used for a real
-    // Actor crash. That looks like something broke, not "please fix this
-    // field", which is misleading for a case that's entirely the user's to
-    // fix. This confirms it now stays on the form with a specific message,
-    // and never shows the loading view at all for a request that never
-    // really started.
+    // validation sent the user through the loading spinner and into the
+    // generic "We couldn't complete your search" error screen, the same
+    // screen used for a real Actor crash. That looks like something broke,
+    // not "please fix this field", which is misleading for a case that's
+    // entirely the user's to fix. This confirms it now stays on the form
+    // with a specific message, and never shows the loading view at all for
+    // a request that never really started.
+    //
+    // Uses gpaOrGrade's length cap as the trigger: it's checked server-side
+    // (start-run.js's validateProfile, MAX_LENGTHS) but has no client-side
+    // length limit at all, so this is a real gap between the two and a
+    // genuine test of the server round-trip, unlike an implausible
+    // fieldOfStudy/country, which the client-side mirror now catches before
+    // ever reaching the network.
     await page.route('**/api/start-run', (route) => {
       route.fulfill({
         status: 400,
         contentType: 'application/json',
-        body: JSON.stringify({ error: 'fieldOfStudy does not look like a real field of study.' }),
+        body: JSON.stringify({ error: 'gpaOrGrade is too long (max 100 characters).', fieldErrors: { gpaOrGrade: 'gpaOrGrade is too long (max 100 characters).' } }),
       });
     });
 
@@ -71,15 +76,99 @@ test.describe('landing and navigation', () => {
     await page.getByRole('button', { name: 'Check my eligibility' }).click();
 
     await page.selectOption('#educationLevel', 'Bachelors');
-    await page.fill('#fieldOfStudy', 'hy');
+    await page.fill('#fieldOfStudy', 'Computer Science');
     await page.fill('#country', 'Nigeria');
+    // Matches the classification pattern (so it passes the client-side
+    // format check), but exceeds the server's 100-char cap, which the
+    // client never checks at all — a real, deliberate gap, not a bug, that
+    // makes this a genuine test of the server round-trip.
+    await page.fill('#gpaOrGrade', `First Class ${'x'.repeat(100)}`);
+    // Blur the last-filled field and let its live-validation DOM update
+    // (app.js's blur listeners insert/resize error text, shifting layout)
+    // fully settle before clicking. Without this, the click can race the
+    // layout shift: Playwright computes the button's click point right as
+    // the blur handler moves it, and the synthetic click lands on empty
+    // space. A real user's mouse-movement time never has this problem;
+    // only a scripted, instantaneous click can hit the gap.
+    await page.locator('#gpaOrGrade').blur();
+    await page.waitForTimeout(300);
     await page.getByRole('button', { name: 'Run Opportunity Radar' }).click();
 
     await expect(page.locator('#view-form')).toBeVisible();
     await expect(page.locator('#view-loading')).toBeHidden();
     await expect(page.locator('#view-error')).toBeHidden();
     await expect(page.locator('#form-error-banner')).toBeVisible();
-    await expect(page.locator('#form-error-banner')).toContainText('does not look like a real field of study');
+    await expect(page.locator('#form-error-banner')).toContainText('too long');
+  });
+
+  test('implausible fieldOfStudy and country show live inline errors on blur, before ever submitting', async ({ page }) => {
+    // Regression test for a real screenshot: typing fieldOfStudy="hy" and
+    // country="7" showed nothing wrong until submit (and even then, the
+    // server round-trip only reported one field at a time). This confirms
+    // the mistake is caught the moment the student leaves each field, not
+    // only at submit.
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Check my eligibility' }).click();
+
+    await page.fill('#fieldOfStudy', 'hy');
+    await page.locator('#fieldOfStudy').blur();
+    await expect(page.locator('#error-fieldOfStudy')).toBeVisible();
+    await expect(page.locator('#error-fieldOfStudy')).toContainText("doesn't look like a real field of study");
+
+    await page.fill('#country', '7');
+    await page.locator('#country').blur();
+    await expect(page.locator('#error-country')).toBeVisible();
+    await expect(page.locator('#error-country')).toContainText("doesn't look like a real country");
+
+    // Fixing a field clears its own error immediately, without needing
+    // another blur or a submit.
+    await page.fill('#fieldOfStudy', 'Computer Science');
+    await expect(page.locator('#error-fieldOfStudy')).toBeHidden();
+  });
+
+  test('an ambiguous bare gpaOrGrade number shows a live error asking for a scale', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Check my eligibility' }).click();
+
+    await page.fill('#gpaOrGrade', '8');
+    await page.locator('#gpaOrGrade').blur();
+    await expect(page.locator('#error-gpaOrGrade')).toBeVisible();
+    await expect(page.locator('#error-gpaOrGrade')).toContainText('needs its scale');
+
+    // Made explicit, it's accepted.
+    await page.fill('#gpaOrGrade', '8/10');
+    await page.locator('#gpaOrGrade').blur();
+    await expect(page.locator('#error-gpaOrGrade')).toBeHidden();
+
+    // An unambiguous percentage-range number needs no scale.
+    await page.fill('#gpaOrGrade', '85');
+    await page.locator('#gpaOrGrade').blur();
+    await expect(page.locator('#error-gpaOrGrade')).toBeHidden();
+  });
+
+  test('submit-time validation blocks and highlights implausible fields independent of the live blur checks', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Check my eligibility' }).click();
+
+    await page.selectOption('#educationLevel', 'Bachelors');
+    await page.fill('#fieldOfStudy', 'hy');
+    await page.fill('#country', '7');
+    // This test's real point is that submit-time validation (validateForm,
+    // called from the submit handler) catches implausible values on its
+    // own, independent of the live blur-triggered checks. Blurring #country
+    // here isn't testing "did blur validation catch it", it's just letting
+    // the DOM settle before the click: app.js's blur listeners insert error
+    // text and resize the layout, and a scripted click can otherwise land
+    // on the button's old position mid-shift, something no real user's
+    // mouse movement is ever fast enough to hit.
+    await page.locator('#country').blur();
+    await page.waitForTimeout(300);
+    await page.getByRole('button', { name: 'Run Opportunity Radar' }).click();
+
+    await expect(page.locator('#view-form')).toBeVisible();
+    await expect(page.locator('#error-fieldOfStudy')).toBeVisible();
+    await expect(page.locator('#error-country')).toBeVisible();
+    await expect(page.locator('#form-error-banner')).toBeVisible();
   });
 });
 

@@ -15,6 +15,12 @@ import { compareListings } from './compare-listings.js';
 import { composeGpaOrGrade } from './gpa-format.js';
 import { extractPdfText } from './pdf-extract.js';
 
+// A real CV is 1-3 pages; even with embedded photos, that's comfortably
+// under a few MB as a PDF. 5MB is generous enough for any genuine CV while
+// still catching an obviously-wrong upload (a mislabeled large file, a
+// scanned multi-page document) before spending time on extraction.
+const CV_FILE_MAX_BYTES = 5 * 1024 * 1024;
+
 await Actor.init();
 
 const input = (await Actor.getInput()) ?? {};
@@ -48,16 +54,34 @@ if (input.compareListingA && input.compareListingB) {
     let resolvedCvText = cvText;
     if (cvFile) {
         try {
-            const pdfResponse = await fetch(cvFile);
+            // A temporary key-value store upload (the Console's default when
+            // you upload a file for a single run, per its own "New temporary
+            // storage" option) requires authentication to download — a bare
+            // unauthenticated fetch returns 403. APIFY_TOKEN is set
+            // automatically in every Actor run's environment by the
+            // platform itself (Actor.getEnv().token), distinct from a
+            // user's own personal account token, so no extra setup is
+            // needed for this to work.
+            const { token: runToken } = Actor.getEnv();
+            const pdfResponse = await fetch(cvFile, runToken ? { headers: { Authorization: `Bearer ${runToken}` } } : undefined);
             if (!pdfResponse.ok) {
                 console.log(`Could not download the uploaded CV file (${pdfResponse.status}), falling back to pasted CV text if any.`);
+            } else if (Number(pdfResponse.headers.get('content-length')) > CV_FILE_MAX_BYTES) {
+                console.log(`Uploaded CV file exceeds the ${CV_FILE_MAX_BYTES / (1024 * 1024)}MB limit, falling back to pasted CV text if any.`);
             } else {
                 const buffer = Buffer.from(await pdfResponse.arrayBuffer());
-                const { text, error } = await extractPdfText(buffer);
-                if (error) {
-                    console.log(`CV PDF extraction failed, falling back to pasted CV text if any: ${error}`);
+                // Content-Length can be missing or wrong (chunked responses,
+                // a misbehaving proxy); the real byte count from the actual
+                // download is the backstop that can't be spoofed or absent.
+                if (buffer.length > CV_FILE_MAX_BYTES) {
+                    console.log(`Uploaded CV file exceeds the ${CV_FILE_MAX_BYTES / (1024 * 1024)}MB limit, falling back to pasted CV text if any.`);
                 } else {
-                    resolvedCvText = text;
+                    const { text, error } = await extractPdfText(buffer);
+                    if (error) {
+                        console.log(`CV PDF extraction failed, falling back to pasted CV text if any: ${error}`);
+                    } else {
+                        resolvedCvText = text;
+                    }
                 }
             }
         } catch (err) {

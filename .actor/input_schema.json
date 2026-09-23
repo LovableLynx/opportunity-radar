@@ -95,7 +95,7 @@
       "title": "CV upload (optional, PDF only)",
       "type": "string",
       "editor": "fileupload",
-      "description": "Upload your CV as a PDF and its text is extracted automatically. If both this and CV content (text) below are provided, the uploaded PDF takes priority, same as the website.",
+      "description": "Upload your CV as a PDF (max 5MB) and its text is extracted automatically. If both this and CV content (text) below are provided, the uploaded PDF takes priority, same as the website.",
       "nullable": true
     },
     "cvText": {

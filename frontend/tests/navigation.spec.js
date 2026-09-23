@@ -280,6 +280,24 @@ test.describe('CV PDF upload', () => {
     await expect(page.locator('#error-cvFile')).toBeHidden();
   });
 
+  test('a file over the 5MB size limit is rejected before ever reaching pdf.js', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Check my eligibility' }).click();
+
+    // A real PDF signature (would otherwise pass looksLikePdf) but oversized
+    // — the size check runs first, so this never reaches pdf.js at all.
+    const oversized = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(5 * 1024 * 1024 + 1, 'x')]);
+    await page.setInputFiles('#cvFile', {
+      name: 'huge-cv.pdf',
+      mimeType: 'application/pdf',
+      buffer: oversized,
+    });
+
+    await expect(page.locator('#error-cvFile')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#error-cvFile')).toContainText('too large');
+    await expect(page.locator('#cvFile')).toHaveValue('');
+  });
+
   test('a file without a valid PDF signature is rejected before ever reaching pdf.js', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Check my eligibility' }).click();

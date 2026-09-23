@@ -114,6 +114,12 @@ function checkCvTextIsClean(text) {
 }
 
 const MIN_EXTRACTED_PDF_TEXT_LENGTH = 30;
+// A real CV is 1-3 pages; even with embedded photos, that's comfortably
+// under a few MB. 5MB is generous enough for any genuine CV while still
+// catching an obviously-wrong upload before spending time trying to parse
+// it. Kept in sync with src/main.js's CV_FILE_MAX_BYTES (the Actor's own
+// direct-upload path, a separate entry point from this website).
+const MAX_CV_FILE_BYTES = 5 * 1024 * 1024;
 
 document.getElementById('cvFile').addEventListener('change', async (e) => {
   const file = e.target.files[0];
@@ -124,6 +130,13 @@ document.getElementById('cvFile').addEventListener('change', async (e) => {
   extractedCvText = null;
 
   if (!file) return;
+
+  if (file.size > MAX_CV_FILE_BYTES) {
+    error.textContent = `That file is too large (max ${MAX_CV_FILE_BYTES / (1024 * 1024)}MB). Paste your CV as text below instead.`;
+    error.hidden = false;
+    e.target.value = '';
+    return;
+  }
 
   if (!(await looksLikePdf(file))) {
     error.textContent = 'That doesn\'t look like a PDF file. Only PDFs are accepted — paste your CV as text below instead.';

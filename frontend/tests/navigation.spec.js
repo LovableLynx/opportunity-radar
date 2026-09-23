@@ -197,9 +197,20 @@ test.describe('landing and navigation', () => {
 
     await page.selectOption('#gpaFormat', 'waec');
     await expect(page.locator('#field-gpa-waec')).toBeVisible();
-    await page.locator('#gpaWaec').fill('6 credits including Maths and English');
-    await page.locator('#gpaWaec').blur();
+    // 5 subject rows are pre-added; an empty grade on a named subject fails.
+    const rows = page.locator('#waec-subject-rows .waec-subject-row');
+    await expect(rows).toHaveCount(5);
+    await rows.nth(0).locator('.waec-subject-name').fill('English Language');
+    await rows.nth(0).locator('.waec-subject-name').blur();
+    await expect(page.locator('#error-gpaOrGrade')).toBeVisible();
+    await expect(page.locator('#error-gpaOrGrade')).toContainText('grade for every subject');
+
+    await rows.nth(0).locator('.waec-subject-grade').selectOption('B3');
     await expect(page.locator('#error-gpaOrGrade')).toBeHidden();
+
+    // Adding a subject grows the row list.
+    await page.getByRole('button', { name: '+ Add subject' }).click();
+    await expect(rows).toHaveCount(6);
 
     // Switching back to a university level resets a hidden-now selection.
     await page.selectOption('#educationLevel', 'Masters');

@@ -247,7 +247,7 @@ function plausibleGpaError(value) {
 function gpaErrorTargetId() {
   const format = document.getElementById('gpaFormat').value;
   if (format === 'classification') return 'gpaClassification';
-  if (format === 'waec') return 'gpaWaec';
+  if (format === 'waec') return 'waec-subject-rows';
   if (format === 'other') return 'gpaOther';
   return 'gpaNumber';
 }
@@ -329,6 +329,73 @@ document.getElementById('gpaFormat').addEventListener('change', updateGpaFormatF
 updateGpaFormatOptions();
 updateGpaFormatFields();
 
+// WAEC/NECO subjects: a variable-length list of subject + grade rows,
+// rather than one free-text box a student has to guess the format of.
+const WAEC_GRADES = ['A1', 'B2', 'B3', 'C4', 'C5', 'C6', 'D7', 'E8', 'F9'];
+const WAEC_MIN_ROWS = 5;
+let waecRowCount = 0;
+
+function addWaecSubjectRow(subjectValue = '') {
+  waecRowCount += 1;
+  const rowId = waecRowCount;
+  const row = document.createElement('div');
+  row.className = 'waec-subject-row';
+  row.dataset.rowId = rowId;
+
+  const subjectInput = document.createElement('input');
+  subjectInput.type = 'text';
+  subjectInput.placeholder = 'Subject, e.g. Mathematics';
+  subjectInput.className = 'waec-subject-name';
+  subjectInput.value = subjectValue;
+  subjectInput.addEventListener('input', () => clearFieldError('gpaOrGrade'));
+  subjectInput.addEventListener('blur', checkGpaField);
+
+  const gradeSelect = document.createElement('select');
+  gradeSelect.className = 'waec-subject-grade';
+  const blank = document.createElement('option');
+  blank.value = '';
+  blank.textContent = 'Grade';
+  gradeSelect.appendChild(blank);
+  for (const grade of WAEC_GRADES) {
+    const option = document.createElement('option');
+    option.value = grade;
+    option.textContent = grade;
+    gradeSelect.appendChild(option);
+  }
+  gradeSelect.addEventListener('change', checkGpaField);
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'btn-remove-subject';
+  removeBtn.setAttribute('aria-label', 'Remove subject');
+  removeBtn.textContent = '×';
+  removeBtn.addEventListener('click', () => {
+    row.remove();
+    clearFieldError('gpaOrGrade');
+  });
+
+  row.append(subjectInput, gradeSelect, removeBtn);
+  document.getElementById('waec-subject-rows').appendChild(row);
+}
+
+document.getElementById('btn-add-waec-subject').addEventListener('click', () => addWaecSubjectRow());
+for (let i = 0; i < WAEC_MIN_ROWS; i++) addWaecSubjectRow();
+
+// A row counts once its student has entered a subject name; a grade left on
+// "Grade" is still incomplete, caught by checkGpaField.
+function waecSubjectRows() {
+  return [...document.querySelectorAll('#waec-subject-rows .waec-subject-row')]
+    .filter((row) => row.querySelector('.waec-subject-name').value.trim());
+}
+
+function plausibleWaecError() {
+  const rows = waecSubjectRows();
+  if (rows.length === 0) return 'Enter at least one subject.';
+  const missingGrade = rows.some((row) => !row.querySelector('.waec-subject-grade').value);
+  if (missingGrade) return 'Select a grade for every subject you entered.';
+  return null;
+}
+
 // Builds the gpaOrGrade string the API expects from the active sub-field.
 function composeGpaOrGrade() {
   const format = document.getElementById('gpaFormat').value;
@@ -343,7 +410,13 @@ function composeGpaOrGrade() {
     return document.getElementById('gpaClassification').value;
   }
   if (format === 'waec') {
-    return document.getElementById('gpaWaec').value.trim();
+    return waecSubjectRows()
+      .map((row) => {
+        const subject = row.querySelector('.waec-subject-name').value.trim();
+        const grade = row.querySelector('.waec-subject-grade').value;
+        return grade ? `${subject}: ${grade}` : subject;
+      })
+      .join(', ');
   }
   if (format === 'other') {
     return document.getElementById('gpaOther').value.trim();
@@ -390,7 +463,7 @@ function checkGpaField() {
   if (format === 'cgpa4') message = plausibleGpaNumberError(document.getElementById('gpaNumber').value, 4.0);
   else if (format === 'cgpa5') message = plausibleGpaNumberError(document.getElementById('gpaNumber').value, 5.0);
   else if (format === 'percentage') message = plausibleGpaNumberError(document.getElementById('gpaNumber').value, 100);
-  else if (format === 'waec' && !document.getElementById('gpaWaec').value.trim()) message = 'Enter your grades.';
+  else if (format === 'waec') message = plausibleWaecError();
   else if (format === 'other') message = plausibleGpaError(document.getElementById('gpaOther').value);
 
   if (message) showFieldError('gpaOrGrade', message);
@@ -399,15 +472,16 @@ function checkGpaField() {
 }
 
 document.getElementById('gpaNumber').addEventListener('blur', checkGpaField);
-document.getElementById('gpaWaec').addEventListener('blur', checkGpaField);
 document.getElementById('gpaOther').addEventListener('blur', checkGpaField);
 // Clear an error as soon as the student starts fixing that field, rather
 // than making them wait for another blur to see it go away.
 document.getElementById('fieldOfStudy').addEventListener('input', () => clearFieldError('fieldOfStudy'));
-for (const id of ['gpaNumber', 'gpaWaec', 'gpaOther']) {
+for (const id of ['gpaNumber', 'gpaOther']) {
   document.getElementById(id).addEventListener('input', () => clearFieldError('gpaOrGrade'));
 }
 document.getElementById('gpaClassification').addEventListener('change', () => clearFieldError('gpaOrGrade'));
+// WAEC rows are dynamic (added/removed), so they're checked at submit time
+// via validateForm rather than on a fixed element's blur.
 
 function validateForm() {
   let hasError = false;

@@ -259,6 +259,25 @@ main { padding-inline: 20px; }
   margin: -4px 0 10px;
 }
 
+.waec-subject-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+.waec-subject-row input[type="text"] { flex: 2; }
+.waec-subject-row select { flex: 1; }
+.waec-subject-row .btn-remove-subject {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.waec-subject-row .btn-remove-subject:hover { color: var(--danger); }
+
 .field.has-error input[type="text"],
 .field.has-error select,
 .field.has-error textarea {

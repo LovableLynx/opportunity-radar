@@ -33,6 +33,22 @@ document.querySelectorAll('.theme-option').forEach((btn) => {
 });
 applyTheme(getStoredTheme());
 
+// Scroll-reveal for landing page sections below the fold. Falls back to
+// showing everything immediately if IntersectionObserver isn't available.
+if ('IntersectionObserver' in window) {
+  const revealObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        revealObserver.unobserve(entry.target);
+      }
+    }
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach((el) => revealObserver.observe(el));
+} else {
+  document.querySelectorAll('.reveal').forEach((el) => el.classList.add('is-visible'));
+}
+
 const views = {
   landing: document.getElementById('view-landing'),
   form: document.getElementById('view-form'),

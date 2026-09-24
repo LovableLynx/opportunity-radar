@@ -37,7 +37,7 @@
   <section class="hero" id="view-landing">
     <div class="hero-grid">
       <div class="hero-copy">
-        <span class="eyebrow">She Code Africa &times; Apify BuildHER Hackathon</span>
+        <span class="eyebrow">Eligibility &amp; trust, checked automatically</span>
         <h1>Find out if<br>you qualify.<br><span class="hero-h1-accent">Find out if it's real.</span></h1>
         <p class="hero-sub">Most scholarship sites just hand you a list. Opportunity Radar checks your profile against real listings and tells you what you're eligible for &mdash; and separately, whether each one is safe to trust, using actual evidence, not a vibe.</p>
         <div class="hero-actions">
@@ -91,19 +91,19 @@
 
     <div class="hero-inner">
       <div class="pillars">
-        <div class="pillar">
+        <div class="pillar reveal">
           <span class="pillar-num">01</span>
           <h3>Do I qualify?</h3>
           <p>Hard facts like deadline, nationality and education level are checked with plain code, no AI guesswork. An LLM only steps in when the wording is genuinely ambiguous.</p>
         </div>
-        <div class="pillar">
+        <div class="pillar reveal">
           <span class="pillar-num">02</span>
           <h3>Can I trust it?</h3>
           <p>Every eligible listing gets checked for scam risk using weighted red-flag detection plus real web-search evidence, paired with an honest confidence score.</p>
         </div>
       </div>
 
-      <div class="proof-section">
+      <div class="proof-section reveal">
         <div class="proof-header">
           <h2>See it in action</h2>
           <p>Real output from an actual run &mdash; not a mockup.</p>
@@ -116,9 +116,13 @@
 
   <!-- FORM -->
   <section class="form-view" id="view-form" hidden>
-    <div class="form-card">
+    <div class="form-view-inner">
+      <div class="form-heading">
+        <h1>Find opportunities that fit you</h1>
+        <p>Tell us a little about yourself so we can find opportunities relevant to your profile.</p>
+      </div>
+      <div class="form-card">
       <button class="back-link" id="btn-back-from-form">&larr; Back</button>
-      <h2>Tell us about you</h2>
       <p class="form-sub">This runs against real, live-scraped listings. A full run takes a few minutes.</p>
       <p class="form-error-banner" id="form-error-banner" hidden>Please complete the highlighted fields before continuing.</p>
 
@@ -213,6 +217,7 @@
 
         <button type="submit" class="btn btn-primary btn-full" id="btn-submit">Run Opportunity Radar</button>
       </form>
+      </div>
     </div>
   </section>
 

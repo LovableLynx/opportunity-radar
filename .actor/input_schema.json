@@ -116,7 +116,7 @@
       "title": "Maintenance run (no profile, no billing)",
       "type": "boolean",
       "editor": "checkbox",
-      "description": "For a scheduled run only, not for a real student. Scrapes every education-level source to check they still work, with no profile attached and no PPE billing. When true, educationLevel/fieldOfStudy/country are ignored.",
+      "description": "For an Apify Schedule only, not for a real student. Scrapes every education-level source to check they still work, with no profile attached and no PPE billing. When true, educationLevel/fieldOfStudy/country are ignored. Only genuinely works when the run is actually started by a Schedule; setting this directly (Console, API) with no groqApiKey still requires one, since the operator's own key is reserved for real scheduled maintenance checks.",
       "default": false
     }
   },

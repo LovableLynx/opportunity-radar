@@ -164,7 +164,14 @@ if (input.compareListingA && input.compareListingB) {
     // openrouter (operator-only dev/fallback paths, not exposed on the
     // website).
     const { groqApiKey = null } = input;
-    if (!input.maintenanceRun && !useGemini && !useOpenRouter && !groqApiKey) {
+    // maintenanceRun is only exempt from needing its own groqApiKey when the
+    // run was genuinely started by an Apify Schedule — checked again here
+    // (not just where the key is resolved below) so a caller who sets
+    // maintenanceRun: true directly, with no groqApiKey and no real
+    // schedule behind it, gets a clear, immediate error instead of a
+    // confusing Groq 401 four retries deep.
+    const isScheduledRun = Actor.getEnv().metaOrigin === 'SCHEDULER';
+    if (!(input.maintenanceRun && isScheduledRun) && !useGemini && !useOpenRouter && !groqApiKey) {
         throw new Error('groqApiKey is required. Sign up for a free key at https://console.groq.com/keys and pass it as input.');
     }
 
@@ -197,14 +204,23 @@ if (input.compareListingA && input.compareListingB) {
     // time (llama-3.3-70b-versatile 404'd in production once already), so
     // this lets the model be swapped via an env var and a rebuild instead
     // of a code change, if the current default ever goes the same way.
+    //
     // maintenanceRun falls back to the operator's own env-var key since it
-    // has no student-supplied groqApiKey to use.
+    // has no student-supplied groqApiKey to use — but only when this run was
+    // genuinely started by an Apify Schedule (metaOrigin === 'SCHEDULER'),
+    // not any caller who happens to set maintenanceRun: true themselves.
+    // Without this check, anyone could get a free ride on the operator's own
+    // Groq key for a scrape-only run by setting that one flag, which would
+    // quietly undercut the whole bring-your-own-key promise for a real
+    // student's run (a different, still-enforced path — see the
+    // groqApiKey-required check above) even though this specific run does no
+    // matching/trust output and no PPE billing either way.
     const generateContentWithRetry = useGemini
         ? makeGenerateContentWithRetry(process.env.GOOGLE_API_KEY)
         : useOpenRouter
             ? makeOpenRouterGenerateContent(process.env.OPENROUTER_API_KEY)
             : makeGroqGenerateContent(
-                groqApiKey || process.env.GROQ_API_KEY,
+                groqApiKey || (input.maintenanceRun && isScheduledRun ? process.env.GROQ_API_KEY : null),
                 process.env.GROQ_MODEL ? { model: process.env.GROQ_MODEL } : {},
             );
 

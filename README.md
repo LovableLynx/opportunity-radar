@@ -40,7 +40,7 @@ frontend on Vercel that starts a run and shows the results.
 
 The Actor is the entire brain of this product: scraping, eligibility
 matching, and trust scoring all happen inside it. The website does not
-duplicate or replace any of that logic — it only validates form input before
+duplicate or replace any of that logic, it only validates form input before
 starting a run, then polls Apify for status and renders whatever the Actor
 already computed. Remove the frontend entirely and the Actor still does
 everything that matters; it can be run directly from Apify Console or the
@@ -130,6 +130,36 @@ Other scholarship Actors on the Store charge per scraped result, typically
 $0.35–$6.00 per 1,000 listings, for raw data with no eligibility or trust
 logic applied. Charging per fully-analyzed listing instead reflects that
 what's being billed is a matching and trust verdict, not a scrape.
+
+## Sustainability & future potential
+
+This isn't a one-shot script; the architecture is built to keep getting
+better and to grow without a rewrite.
+
+- **It already learns.** Every run that finds a repeating suspicious phrase
+  across multiple listings (`cross-listing-patterns.js`) saves it to the
+  Actor's key-value store (`learned-patterns.js`), and every future run
+  checks new listings against that growing list on top of the fixed
+  starting patterns. The trust-scoring model gets sharper with use, without
+  anyone retraining anything.
+- **Adding a new scholarship source is one object, not a rewrite.**
+  `SOURCES` in `src/scrape.js` is a plain map of name, start URL, and
+  description; extraction from a scraped page is LLM-driven, not brittle
+  CSS selectors tied to one site's markup, so a new source (another
+  country's listings, a new provider) is a small, low-risk addition, not a
+  new scraper to build from scratch.
+- **More education levels and regions are a config change.** The same
+  pattern that already splits PhD/Masters/Bachelors listings by source
+  (`sourceKeysForEducationLevel`) extends the same way to new
+  countries or education systems.
+- **A scheduled maintenance mode already exists.** `maintenanceRun` input
+  scrapes every source on a schedule with no student attached and no
+  billing, catching a source going down before a real student's run would.
+  This is the seed of a properly cached, always-warm version of the product.
+- **Open source.** The full source lives at
+  [github.com/LovableLynx/opportunity-radar](https://github.com/LovableLynx/opportunity-radar),
+  so the matching and trust-scoring logic can be reviewed, adapted, or
+  built on by anyone, not locked inside a black-box Actor.
 
 ## Team
 

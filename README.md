@@ -60,7 +60,9 @@ API with the same input shape described below.
 
 ## Output
 
-One record per listing. The fields that matter most:
+One record per listing. Full field definitions live in
+`.actor/output_schema.json`, which also defines the table view Apify Console
+renders on the run's Output tab. The fields that matter most:
 
 - `title`, `link`, `deadline`, `urgency`: what the opportunity is and how
   soon it closes.

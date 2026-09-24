@@ -1,0 +1,65 @@
+{
+  "actorSpecification": 1,
+  "fields": {
+    "title": "Apify output schema",
+    "schemaVersion": 1,
+    "type": "object",
+    "properties": {
+      "title": { "type": "string", "description": "The scholarship or grant's title." },
+      "link": { "type": "string", "description": "URL of the listing's own detail page, if one was found." },
+      "deadline": { "type": "string", "description": "Application deadline as stated on the listing, or 'Not specified'." },
+      "description": { "type": "string", "description": "Short description of the opportunity." },
+      "eligibility": { "type": "string", "description": "The listing's own stated eligibility text, as scraped." },
+      "hardRequirementsMet": { "type": "boolean", "description": "Whether deadline, nationality, and education level (checked with plain code, not an LLM) all pass." },
+      "eligibilityMatch": { "type": "string", "description": "Eligible, Partial, or Not Eligible." },
+      "eligibilityConfidence": { "type": "string", "description": "Verified (the listing's own eligibility text was actually checked) or Unverified (verdict rests on hard requirements alone)." },
+      "missingRequirements": { "type": "array", "description": "Specific requirements the profile does not meet, when eligibilityMatch is Partial or Not Eligible." },
+      "llmInterpretation": { "type": "string", "description": "Plain-language reasoning when an LLM had to resolve genuinely ambiguous eligibility wording." },
+      "actionSteps": { "type": "array", "description": "What to actually do next for this listing, when applicable." },
+      "usedCvEvidence": { "type": "boolean", "description": "Whether the student's uploaded/pasted CV was used to resolve an otherwise-ambiguous requirement." },
+      "trustRisk": { "type": "string", "description": "Low Risk, Some Concerns, or High Risk." },
+      "trustScore": { "type": "integer", "description": "Underlying weighted score trustRisk is derived from." },
+      "trustEvidence": { "type": "array", "description": "The specific signals behind the trust score, e.g. 'No risk signals detected' or 'Independent evidence was found'." },
+      "trustConfidence": { "type": "string", "description": "How much independent evidence actually backs the trust score: Very low, Low, Medium, or High." },
+      "urgency": { "type": "string", "description": "Closing soon, Upcoming, Plenty of time, Closed, or Unknown, derived from deadline." },
+      "daysRemaining": { "type": "integer", "description": "Days until the deadline, or null if the deadline is unknown/unparseable." },
+      "source": { "type": "string", "description": "Which scholarship-portal source this listing was scraped from." },
+      "scrapedFor": { "type": "object", "description": "The student profile this listing was matched and trust-scored against." }
+    }
+  },
+  "views": {
+    "results": {
+      "title": "Matched opportunities",
+      "description": "One row per listing, with eligibility and trust verdicts side by side.",
+      "transformation": {
+        "fields": [
+          "title",
+          "deadline",
+          "urgency",
+          "eligibilityMatch",
+          "eligibilityConfidence",
+          "trustRisk",
+          "trustConfidence",
+          "missingRequirements",
+          "trustEvidence",
+          "link"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "title": { "label": "Title", "format": "text" },
+          "deadline": { "label": "Deadline", "format": "text" },
+          "urgency": { "label": "Urgency", "format": "text" },
+          "eligibilityMatch": { "label": "Eligible?", "format": "text" },
+          "eligibilityConfidence": { "label": "Eligibility confidence", "format": "text" },
+          "trustRisk": { "label": "Trust risk", "format": "text" },
+          "trustConfidence": { "label": "Trust confidence", "format": "text" },
+          "missingRequirements": { "label": "Missing requirements", "format": "array" },
+          "trustEvidence": { "label": "Trust evidence", "format": "array" },
+          "link": { "label": "Link", "format": "link" }
+        }
+      }
+    }
+  }
+}

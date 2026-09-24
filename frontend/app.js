@@ -214,12 +214,14 @@ async function loadDemoIntoResults() {
 document.getElementById('btn-demo').addEventListener('click', loadDemoIntoResults);
 document.getElementById('btn-demo-2').addEventListener('click', loadDemoIntoResults);
 
-// Landing-page proof strip: a couple of real eligible listings from the same
-// demo-data.json used by "See a live example", shown inline so judges see
+// Landing-page proof: real eligible listings from the same demo-data.json
+// used by "See a live example", shown both as a browser-frame mockup next
+// to the hero copy and as a fuller proof list further down, so judges see
 // actual output before clicking anything.
-(async function loadProofCards() {
-  const list = document.getElementById('proof-list');
-  if (!list) return;
+(async function loadLandingProof() {
+  const proofList = document.getElementById('proof-list');
+  const previewBody = document.getElementById('hero-preview-body');
+  if (!proofList && !previewBody) return;
   try {
     const res = await fetch('demo-data.json');
     const data = await res.json();
@@ -227,33 +229,48 @@ document.getElementById('btn-demo-2').addEventListener('click', loadDemoIntoResu
       .filter((r) => r.eligibilityMatch === 'Eligible')
       .slice(0, 2);
 
-    for (const r of picks) {
-      const card = document.createElement('div');
-      card.className = 'proof-card';
-      const safeLink = safeHttpUrl(r.link);
-      const titleHtml = safeLink
-        ? `<a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener">${escapeHtml(r.title)}</a>`
-        : escapeHtml(r.title);
-      let html = `
-        <div class="proof-top">
-          <div>
-            <div class="proof-title">${titleHtml}</div>
-            <div class="proof-meta">Deadline: ${escapeHtml(r.deadline || 'Not specified')} &middot; ${escapeHtml(r.urgency || 'Unknown')}</div>
-          </div>
-          <div class="badges">
+    if (previewBody) {
+      previewBody.innerHTML = picks.map((r) => `
+        <div class="hero-preview-card">
+          <div class="hero-preview-title">${escapeHtml(r.title)}</div>
+          <div class="hero-preview-meta">Deadline: ${escapeHtml(r.deadline || 'Not specified')} &middot; ${escapeHtml(r.urgency || 'Unknown')}</div>
+          <div class="hero-preview-badges">
             <span class="badge ${badgeClassForMatch(r.eligibilityMatch)}">${escapeHtml(r.eligibilityMatch)}</span>
             <span class="badge ${badgeClassForRisk(r.trustRisk)}">${escapeHtml(r.trustRisk || 'Unknown')}</span>
           </div>
         </div>
-      `;
-      if (r.trustEvidence?.length) {
-        html += `<div class="proof-note"><b>Trust evidence:</b> ${r.trustEvidence.map(escapeHtml).join('; ')}</div>`;
+      `).join('');
+    }
+
+    if (proofList) {
+      for (const r of picks) {
+        const card = document.createElement('div');
+        card.className = 'proof-card';
+        const safeLink = safeHttpUrl(r.link);
+        const titleHtml = safeLink
+          ? `<a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener">${escapeHtml(r.title)}</a>`
+          : escapeHtml(r.title);
+        let html = `
+          <div class="proof-top">
+            <div>
+              <div class="proof-title">${titleHtml}</div>
+              <div class="proof-meta">Deadline: ${escapeHtml(r.deadline || 'Not specified')} &middot; ${escapeHtml(r.urgency || 'Unknown')}</div>
+            </div>
+            <div class="badges">
+              <span class="badge ${badgeClassForMatch(r.eligibilityMatch)}">${escapeHtml(r.eligibilityMatch)}</span>
+              <span class="badge ${badgeClassForRisk(r.trustRisk)}">${escapeHtml(r.trustRisk || 'Unknown')}</span>
+            </div>
+          </div>
+        `;
+        if (r.trustEvidence?.length) {
+          html += `<div class="proof-note"><b>Trust evidence:</b> ${r.trustEvidence.map(escapeHtml).join('; ')}</div>`;
+        }
+        card.innerHTML = html;
+        proofList.appendChild(card);
       }
-      card.innerHTML = html;
-      list.appendChild(card);
     }
   } catch (err) {
-    list.hidden = true;
+    if (proofList) proofList.hidden = true;
   }
 })();
 

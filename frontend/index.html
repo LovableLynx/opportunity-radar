@@ -35,30 +35,61 @@
 
   <!-- HERO / LANDING -->
   <section class="hero" id="view-landing">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow">She Code Africa &times; Apify BuildHER Hackathon</span>
+        <h1>Find out if<br>you qualify.<br><span class="hero-h1-accent">Find out if it's real.</span></h1>
+        <p class="hero-sub">Most scholarship sites just hand you a list. Opportunity Radar checks your profile against real listings and tells you what you're eligible for &mdash; and separately, whether each one is safe to trust, using actual evidence, not a vibe.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" id="btn-start">Check my eligibility</button>
+          <button class="btn btn-ghost" id="btn-demo">See a live example</button>
+        </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <span class="hero-stat-num">2</span>
+            <span class="hero-stat-label">Independent checks<br>per listing</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-num">0</span>
+            <span class="hero-stat-label">Invented rules<br>&mdash; code only</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-num">Live</span>
+            <span class="hero-stat-label">Scraped listings,<br>not a static set</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="radar-scope">
+          <svg class="radar-rings" viewBox="0 0 200 200" fill="none">
+            <circle cx="100" cy="100" r="40" stroke="currentColor" stroke-width="1" opacity="0.25"/>
+            <circle cx="100" cy="100" r="70" stroke="currentColor" stroke-width="1" opacity="0.18"/>
+            <circle cx="100" cy="100" r="98" stroke="currentColor" stroke-width="1" opacity="0.12"/>
+          </svg>
+          <div class="radar-sweep"></div>
+          <span class="radar-blip radar-blip-1"></span>
+          <span class="radar-blip radar-blip-2"></span>
+          <span class="radar-blip radar-blip-3"></span>
+        </div>
+        <div class="browser-frame">
+          <div class="browser-chrome">
+            <span class="browser-dot"></span>
+            <span class="browser-dot"></span>
+            <span class="browser-dot"></span>
+          </div>
+          <div class="browser-body" id="hero-preview-body">
+            <div class="browser-skeleton">
+              <div class="skeleton-line skeleton-line-title"></div>
+              <div class="skeleton-line skeleton-line-short"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="hero-inner">
-      <span class="eyebrow">Built for the She Code Africa &times; Apify BuildHER Hackathon</span>
-      <h1>Find out if you qualify.<br>Find out if it's real.</h1>
-      <p class="hero-sub">Most scholarship sites just hand you a list. Opportunity Radar checks your profile against real listings and tells you what you're eligible for, and separately, whether each one is safe to trust, using actual evidence, not a vibe.</p>
-      <div class="hero-actions">
-        <button class="btn btn-primary" id="btn-start">Check my eligibility</button>
-        <button class="btn btn-ghost" id="btn-demo">See a live example</button>
-      </div>
-
-      <div class="hero-stats">
-        <div class="hero-stat">
-          <span class="hero-stat-num">2</span>
-          <span class="hero-stat-label">Independent checks<br>per listing</span>
-        </div>
-        <div class="hero-stat">
-          <span class="hero-stat-num">0</span>
-          <span class="hero-stat-label">Invented eligibility<br>rules &mdash; code only</span>
-        </div>
-        <div class="hero-stat">
-          <span class="hero-stat-num">Live</span>
-          <span class="hero-stat-label">Scraped listings,<br>not a static dataset</span>
-        </div>
-      </div>
-
       <div class="pillars">
         <div class="pillar">
           <span class="pillar-num">01</span>

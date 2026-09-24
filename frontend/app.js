@@ -198,7 +198,7 @@ document.getElementById('cvFile').addEventListener('change', async (e) => {
   }
 });
 
-document.getElementById('btn-demo').addEventListener('click', async () => {
+async function loadDemoIntoResults() {
   showView('loading');
   document.getElementById('loading-headline').textContent = 'Loading the example run…';
   document.getElementById('loading-sub').textContent = 'This is real output from an actual run, not invented.';
@@ -209,7 +209,53 @@ document.getElementById('btn-demo').addEventListener('click', async () => {
   } catch (err) {
     showError('Could not load the example data. ' + err.message);
   }
-});
+}
+
+document.getElementById('btn-demo').addEventListener('click', loadDemoIntoResults);
+document.getElementById('btn-demo-2').addEventListener('click', loadDemoIntoResults);
+
+// Landing-page proof strip: a couple of real eligible listings from the same
+// demo-data.json used by "See a live example", shown inline so judges see
+// actual output before clicking anything.
+(async function loadProofCards() {
+  const list = document.getElementById('proof-list');
+  if (!list) return;
+  try {
+    const res = await fetch('demo-data.json');
+    const data = await res.json();
+    const picks = (data.results || [])
+      .filter((r) => r.eligibilityMatch === 'Eligible')
+      .slice(0, 2);
+
+    for (const r of picks) {
+      const card = document.createElement('div');
+      card.className = 'proof-card';
+      const safeLink = safeHttpUrl(r.link);
+      const titleHtml = safeLink
+        ? `<a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener">${escapeHtml(r.title)}</a>`
+        : escapeHtml(r.title);
+      let html = `
+        <div class="proof-top">
+          <div>
+            <div class="proof-title">${titleHtml}</div>
+            <div class="proof-meta">Deadline: ${escapeHtml(r.deadline || 'Not specified')} &middot; ${escapeHtml(r.urgency || 'Unknown')}</div>
+          </div>
+          <div class="badges">
+            <span class="badge ${badgeClassForMatch(r.eligibilityMatch)}">${escapeHtml(r.eligibilityMatch)}</span>
+            <span class="badge ${badgeClassForRisk(r.trustRisk)}">${escapeHtml(r.trustRisk || 'Unknown')}</span>
+          </div>
+        </div>
+      `;
+      if (r.trustEvidence?.length) {
+        html += `<div class="proof-note"><b>Trust evidence:</b> ${r.trustEvidence.map(escapeHtml).join('; ')}</div>`;
+      }
+      card.innerHTML = html;
+      list.appendChild(card);
+    }
+  } catch (err) {
+    list.hidden = true;
+  }
+})();
 
 // Field-level validation, matching the Figma 01B validation-error screen:
 // an inline message under each invalid required field, plus a banner at

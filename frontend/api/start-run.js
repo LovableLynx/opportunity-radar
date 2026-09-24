@@ -22,7 +22,13 @@ const MAX_LENGTHS = {
     country: 200,
     gpaOrGrade: 100,
     cvText: 20000,
+    groqApiKey: 200,
 };
+
+// No strict Groq key format check here (unverified assumption risks
+// rejecting a real key) — just presence and a length sanity cap. Real
+// validation happens at Groq's own API: an invalid key fails there with a
+// 401, surfaced back through the Actor's run status.
 
 // A real production test caught this: submitting fieldOfStudy="hy" and
 // gpaOrGrade="00" passed every check above (both are non-empty strings
@@ -89,8 +95,19 @@ export function validateProfile(body) {
         return { valid: false, fieldErrors: {}, error: 'Request body must be a JSON object.' };
     }
 
-    const { educationLevel, fieldOfStudy, country, fundingNeeded, gpaOrGrade, cvText } = body;
+    const { educationLevel, fieldOfStudy, country, fundingNeeded, gpaOrGrade, cvText, groqApiKey } = body;
     const fieldErrors = {};
+
+    // Bring-your-own-key: the website's AI matching/trust-scoring runs on
+    // the student's own Groq account, not this project's, so every real run
+    // needs one. See src/main.js's own identical check for the Actor's
+    // direct-API/Console entry point (this route is the website's, separate
+    // from that one).
+    if (typeof groqApiKey !== 'string' || !groqApiKey.trim()) {
+        fieldErrors.groqApiKey = 'groqApiKey is required. Get a free one at https://console.groq.com/keys.';
+    } else if (groqApiKey.length > MAX_LENGTHS.groqApiKey) {
+        fieldErrors.groqApiKey = `groqApiKey is too long (max ${MAX_LENGTHS.groqApiKey} characters).`;
+    }
 
     if (typeof educationLevel !== 'string' || !EDUCATION_LEVELS.includes(educationLevel)) {
         fieldErrors.educationLevel = `educationLevel must be one of: ${EDUCATION_LEVELS.join(', ')}.`;

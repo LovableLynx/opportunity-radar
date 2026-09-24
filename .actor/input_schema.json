@@ -3,6 +3,13 @@
   "type": "object",
   "schemaVersion": 1,
   "properties": {
+    "groqApiKey": {
+      "title": "Your Groq API key",
+      "type": "string",
+      "editor": "textfield",
+      "isSecret": true,
+      "description": "Free at https://console.groq.com/keys. Required so the Actor's AI matching and trust-scoring runs on your own account, not the operator's. Not needed if maintenanceRun is set."
+    },
     "educationLevel": {
       "title": "Education level",
       "type": "string",

@@ -153,15 +153,35 @@ if (input.compareListingA && input.compareListingB) {
     const useGemini = process.env.LLM_PROVIDER === 'gemini';
     const useOpenRouter = process.env.LLM_PROVIDER === 'openrouter';
 
+    // Bring-your-own-key: on the default Groq path, for a real student run,
+    // the LLM cost is the caller's own, not this Actor operator's. groqApiKey
+    // is a required Actor input for that reason — Groq's free tier is enough
+    // for a real run, and signing up for one is the only thing standing
+    // between a student and a run that would otherwise cost the operator
+    // real money on every single use. This does NOT apply to maintenanceRun
+    // (an operator-scheduled run, not a student's, billed to nobody, so it
+    // keeps using the operator's own env-var key) or to LLM_PROVIDER=gemini/
+    // openrouter (operator-only dev/fallback paths, not exposed on the
+    // website).
+    const { groqApiKey = null } = input;
+    if (!input.maintenanceRun && !useGemini && !useOpenRouter && !groqApiKey) {
+        throw new Error('groqApiKey is required. Sign up for a free key at https://console.groq.com/keys and pass it as input.');
+    }
+
     // GROQ_MODEL is optional: Groq deprecates/removes models from time to
     // time (llama-3.3-70b-versatile 404'd in production once already), so
     // this lets the model be swapped via an env var and a rebuild instead
     // of a code change, if the current default ever goes the same way.
+    // maintenanceRun falls back to the operator's own env-var key since it
+    // has no student-supplied groqApiKey to use.
     const generateContentWithRetry = useGemini
         ? makeGenerateContentWithRetry(process.env.GOOGLE_API_KEY)
         : useOpenRouter
             ? makeOpenRouterGenerateContent(process.env.OPENROUTER_API_KEY)
-            : makeGroqGenerateContent(process.env.GROQ_API_KEY, process.env.GROQ_MODEL ? { model: process.env.GROQ_MODEL } : {});
+            : makeGroqGenerateContent(
+                groqApiKey || process.env.GROQ_API_KEY,
+                process.env.GROQ_MODEL ? { model: process.env.GROQ_MODEL } : {},
+            );
 
     // Falls back to the main key/provider if no second Gemini key is set, so
     // this works whether or not GOOGLE_API_KEY_SEARCH is configured. Only

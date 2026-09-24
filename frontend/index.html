@@ -128,6 +128,13 @@
 
       <form id="profile-form" novalidate>
         <div class="field">
+          <label for="groqApiKey">Your Groq API key</label>
+          <p class="field-hint">Free, takes under a minute: create one at <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>, then paste it below. Your run's AI matching and trust-scoring uses your own key, not ours, so nothing is shared or billed beyond your own free Groq usage.</p>
+          <input type="password" id="groqApiKey" placeholder="gsk_..." autocomplete="off" required>
+          <p class="field-error" id="error-groqApiKey" hidden>Please enter your Groq API key.</p>
+        </div>
+
+        <div class="field">
           <label for="educationLevel">Education level</label>
           <select id="educationLevel" required>
             <option value="" disabled selected>Select one</option>

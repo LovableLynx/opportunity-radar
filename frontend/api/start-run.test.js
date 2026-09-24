@@ -16,6 +16,7 @@ function validProfile(overrides = {}) {
         fieldOfStudy: 'Computer Science',
         country: 'Nigeria',
         fundingNeeded: true,
+        groqApiKey: 'gsk_test_key_1234567890',
         ...overrides,
     };
 }
@@ -187,4 +188,16 @@ test('an omitted or blank gpaOrGrade is fine (it is optional; the format check o
     assertValid(profile);
     assertValid(validProfile({ gpaOrGrade: '' }));
     assertValid(validProfile({ gpaOrGrade: '   ' }));
+});
+
+test('groqApiKey is required (bring-your-own-key: the run happens on the student\'s own Groq account)', () => {
+    const { groqApiKey, ...profile } = validProfile();
+    assertInvalid(profile, 'groqApiKey');
+    assertInvalid(validProfile({ groqApiKey: '' }), 'groqApiKey');
+    assertInvalid(validProfile({ groqApiKey: '   ' }), 'groqApiKey');
+    assertInvalid(validProfile({ groqApiKey: 123 }), 'groqApiKey');
+});
+
+test('groqApiKey has a length cap', () => {
+    assertInvalid(validProfile({ groqApiKey: 'gsk_'.padEnd(250, 'x') }), 'groqApiKey');
 });

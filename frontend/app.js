@@ -293,7 +293,7 @@ document.getElementById('btn-demo-2').addEventListener('click', loadDemoIntoResu
 // Field-level validation, matching the Figma 01B validation-error screen:
 // an inline message under each invalid required field, plus a banner at
 // the top of the form. Required fields only, optional fields never block.
-const REQUIRED_FIELDS = ['educationLevel', 'fieldOfStudy', 'country'];
+const REQUIRED_FIELDS = ['groqApiKey', 'educationLevel', 'fieldOfStudy', 'country'];
 
 // These mirror frontend/api/start-run.js's validateProfile rules exactly, so
 // a student sees the same objection here that the server would raise, live
@@ -369,7 +369,7 @@ function clearFieldError(id) {
 
 function clearFieldErrors() {
   document.getElementById('form-error-banner').hidden = true;
-  for (const id of ['educationLevel', 'fieldOfStudy', 'country', 'gpaOrGrade']) {
+  for (const id of ['groqApiKey', 'educationLevel', 'fieldOfStudy', 'country', 'gpaOrGrade']) {
     clearFieldError(id);
   }
   document.getElementById('error-cvFile').hidden = true;
@@ -671,6 +671,7 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
   }
 
   const profile = {
+    groqApiKey: document.getElementById('groqApiKey').value.trim(),
     educationLevel: document.getElementById('educationLevel').value,
     fieldOfStudy: document.getElementById('fieldOfStudy').value,
     country: document.getElementById('country').value,

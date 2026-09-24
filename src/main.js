@@ -275,7 +275,18 @@ if (input.compareListingA && input.compareListingB) {
         // env var, or set it to 0, for a real full-scope run.
         listingLimit: isTestRun ? 3 : undefined,
         sourceKeys,
-        enrichLimitPerSource: 5,
+        // Was 5: a deliberate cost cap from early development, when every
+        // enrichment call was billed to this Actor's own operator quota.
+        // Now that the AI cost is bring-your-own-key (the student's own
+        // Groq account) and the platform fee is PPE per listing, the
+        // constraint that justified keeping this low no longer applies, a
+        // paying student should get the deepest analysis their run can
+        // reasonably give, not the cheapest one for the operator. Verified
+        // live: 15 hit Groq's free-tier 8000 TPM limit twice in one run
+        // (13/15 succeeded, 2 gracefully fell back to summary-only data).
+        // 10 is the safer number, chosen to reliably stay under that TPM
+        // ceiling on a typical free key rather than risk any fallback.
+        enrichLimitPerSource: 10,
     });
 
     console.log(`Matching and trust-scoring ${listings.length} listings against the student profile.`);

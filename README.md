@@ -52,6 +52,7 @@ API with the same input shape described below.
 
 | Field | Required | Example |
 | --- | --- | --- |
+| `groqApiKey` | yes | Free at [console.groq.com/keys](https://console.groq.com/keys). Bring-your-own-key: your AI matching and trust-scoring runs on your own account, not the operator's, so nothing is billed to you beyond your own Groq usage. Not needed with `maintenanceRun`. |
 | `educationLevel` | yes | `Bachelors` (one of High school, Bachelors, Masters, PhD) |
 | `fieldOfStudy` | yes | `Computer Science` |
 | `country` | yes | `Nigeria` |
@@ -74,6 +75,22 @@ renders on the run's Output tab. The fields that matter most:
   `trustEvidence` listing the actual reasons and `trustConfidence` saying how
   much evidence the verdict rests on.
 
+## Technologies and tools used
+
+- **[Apify](https://apify.com)**: the Actor itself, plus its `apify/website-content-crawler`
+  Actor called directly from this Actor's own code for the actual page
+  fetches, residential proxy, key-value store, and Pay-Per-Event billing.
+- **[Groq](https://groq.com)**: the AI provider for eligibility interpretation
+  and trust-scoring reasoning, bring-your-own-key (see Input above); Gemini
+  and OpenRouter are supported operator-side alternatives.
+- **Node.js** (Apify SDK, `@google/generative-ai`, `pdfjs-dist` for server-side
+  CV extraction): the Actor's own runtime.
+- **Vercel**: hosts the static frontend and its two serverless API routes
+  (start a run, poll its status).
+- **Plain HTML/CSS/JS**: the frontend, no framework.
+- **Node's built-in test runner** (`node --test`) and **Playwright**: backend
+  unit tests and frontend end-to-end tests, respectively.
+
 ## Project structure
 
 - `src/` holds the Actor itself: scraping, eligibility matching, trust
@@ -90,13 +107,17 @@ renders on the run's Output tab. The fields that matter most:
 
 ```bash
 npm install
-cp .env.example .env   # fill in your own API key, never commit .env
 ```
 
-You'll need a [Groq](https://console.groq.com) API key, since that's the
-default AI provider. Gemini and OpenRouter also work; see `.env.example`
-for how to switch. You'll also need the Apify CLI (`npm install -g
-apify-cli`). Then:
+A real run needs a [Groq](https://console.groq.com/keys) API key, since
+that's the default AI provider (bring-your-own-key, see Input above). Pass
+it in `storage/key_value_stores/default/INPUT.json` alongside the rest of
+your test profile, or set `GROQ_API_KEY` in `.env` for a quick
+`maintenanceRun` (that path is the operator/env-var one, not the
+student-facing one). Gemini and OpenRouter also work as the underlying
+provider; see `.env.example` for how to switch (an operator-side setting,
+`LLM_PROVIDER`, not something a student picks). You'll also need the Apify
+CLI (`npm install -g apify-cli`). Then:
 
 ```bash
 apify run

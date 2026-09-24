@@ -5,6 +5,13 @@ things on your own: do you actually qualify, and is the listing even real.
 Opportunity Radar checks both, against real, live-scraped scholarship and
 grant listings.
 
+Most scholarship-related Actors on the Apify Store stop at scraping — they
+return a list, sometimes with a raw `eligibility` text field lifted straight
+from the page, and leave the actual matching and trust judgment to you.
+Opportunity Radar does that work itself: every listing gets checked against
+your specific profile and scored for scam risk, with evidence behind both
+verdicts, not just a badge.
+
 - **Eligibility.** Deadline, nationality, and education level are checked
   with plain code, not AI guesswork. An AI model only gets involved for
   genuinely ambiguous wording, like "preference given to applicants with
@@ -39,8 +46,9 @@ frontend on Vercel that starts a run and shows the results.
 | `fieldOfStudy` | yes | `Computer Science` |
 | `country` | yes | `Nigeria` |
 | `fundingNeeded` | no | `true` |
-| `gpaOrGrade` | no | `3.6/4.0`, `85%`, or `First Class` |
-| `cvText` | no | Plain text of your CV |
+| `gpaFormat` + `gpaOrGrade` | no | Pick a scale (`cgpa4`, `cgpa5`, `percentage`, `classification`, `waec`, `other`) so the value below is read correctly instead of guessed |
+| `cvFile` | no | Upload a CV as PDF (max 5MB) — text is extracted automatically |
+| `cvText` | no | Plain text of your CV, used if no PDF is uploaded |
 
 ## Output
 
@@ -109,6 +117,11 @@ npm run test:api       # API route validation tests
 Opportunity Radar uses Apify's Pay-Per-Event pricing, one billable event per
 listing that's been fully matched and trust-scored. The price itself is set
 in Apify Console, not in this repo.
+
+Other scholarship Actors on the Store charge per scraped result, typically
+$0.35–$6.00 per 1,000 listings, for raw data with no eligibility or trust
+logic applied. Charging per fully-analyzed listing instead reflects that
+what's being billed is a matching and trust verdict, not a scrape.
 
 ## Team
 

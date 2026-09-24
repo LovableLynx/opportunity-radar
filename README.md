@@ -5,7 +5,7 @@ things on your own: do you actually qualify, and is the listing even real.
 Opportunity Radar checks both, against real, live-scraped scholarship and
 grant listings.
 
-Most scholarship-related Actors on the Apify Store stop at scraping — they
+Most scholarship-related Actors on the Apify Store stop at scraping: they
 return a list, sometimes with a raw `eligibility` text field lifted straight
 from the page, and leave the actual matching and trust judgment to you.
 Opportunity Radar does that work itself: every listing gets checked against
@@ -38,6 +38,14 @@ Under the hood, this is an [Apify Actor](https://apify.com), a scraping and
 automation program hosted on Apify's platform, paired with a small web
 frontend on Vercel that starts a run and shows the results.
 
+The Actor is the entire brain of this product: scraping, eligibility
+matching, and trust scoring all happen inside it. The website does not
+duplicate or replace any of that logic — it only validates form input before
+starting a run, then polls Apify for status and renders whatever the Actor
+already computed. Remove the frontend entirely and the Actor still does
+everything that matters; it can be run directly from Apify Console or the
+API with the same input shape described below.
+
 ## Input
 
 | Field | Required | Example |
@@ -47,7 +55,7 @@ frontend on Vercel that starts a run and shows the results.
 | `country` | yes | `Nigeria` |
 | `fundingNeeded` | no | `true` |
 | `gpaFormat` + `gpaOrGrade` | no | Pick a scale (`cgpa4`, `cgpa5`, `percentage`, `classification`, `waec`, `other`) so the value below is read correctly instead of guessed |
-| `cvFile` | no | Upload a CV as PDF (max 5MB) — text is extracted automatically |
+| `cvFile` | no | Upload a CV as PDF (max 5MB), text is extracted automatically |
 | `cvText` | no | Plain text of your CV, used if no PDF is uploaded |
 
 ## Output

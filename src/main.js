@@ -168,6 +168,31 @@ if (input.compareListingA && input.compareListingB) {
         throw new Error('groqApiKey is required. Sign up for a free key at https://console.groq.com/keys and pass it as input.');
     }
 
+    // The website's /api/start-run route already rejects implausible
+    // fieldOfStudy/country values (a real production test caught
+    // fieldOfStudy="hy" triggering a full, billed run before anything
+    // noticed) — but that check only runs on the website's own server, not
+    // here, so Console, the API, or MCP could still submit garbage directly
+    // to the Actor and pay real PPE + LLM cost on it. Same heuristic ported
+    // here: reject a bare minimum length and pure gibberish (no vowels at
+    // all), not a claim everything past this filter is definitely real —
+    // both fields are genuinely free text with no closed, correct set to
+    // check against. maintenanceRun has no profile at all, so it's exempt.
+    if (!input.maintenanceRun) {
+        const MIN_FREE_TEXT_LENGTH = 2;
+        const NO_VOWELS_PATTERN = /^[^aeiouAEIOU\s]+$/;
+        const isImplausible = (value) => {
+            const trimmed = (value || '').trim();
+            return trimmed.length < MIN_FREE_TEXT_LENGTH || NO_VOWELS_PATTERN.test(trimmed);
+        };
+        if (isImplausible(fieldOfStudy)) {
+            throw new Error(`fieldOfStudy "${fieldOfStudy}" does not look like a real field of study. Please provide a real field, e.g. "Computer Science".`);
+        }
+        if (isImplausible(country)) {
+            throw new Error(`country "${country}" does not look like a real country. Please provide your real country, e.g. "Nigeria".`);
+        }
+    }
+
     // GROQ_MODEL is optional: Groq deprecates/removes models from time to
     // time (llama-3.3-70b-versatile 404'd in production once already), so
     // this lets the model be swapped via an env var and a rebuild instead

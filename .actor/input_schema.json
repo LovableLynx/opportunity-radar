@@ -104,7 +104,14 @@
       "editor": "textarea",
       "description": "Plain text of the student's CV, used only if no PDF is uploaded above. When provided, ambiguous eligibility criteria (e.g. 'research experience preferred') are checked against real CV content instead of left unconfirmed.",
       "nullable": true
+    },
+    "maintenanceRun": {
+      "title": "Maintenance run (no profile, no billing)",
+      "type": "boolean",
+      "editor": "checkbox",
+      "description": "For a scheduled run only, not for a real student. Scrapes every education-level source to check they still work, with no profile attached and no PPE billing. When true, educationLevel/fieldOfStudy/country are ignored.",
+      "default": false
     }
   },
-  "required": ["educationLevel", "fieldOfStudy", "country"]
+  "required": []
 }

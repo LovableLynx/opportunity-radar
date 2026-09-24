@@ -173,6 +173,46 @@ if (input.compareListingA && input.compareListingB) {
 
     const isTestRun = process.env.OPPORTUNITY_RADAR_TEST_MODE === '1';
 
+    // Maintenance mode: meant for an Apify Schedule rather than a student,
+    // no profile is attached so nothing gets matched, trust-scored, or
+    // PPE-billed (Actor.charge only ever fires further down in the real
+    // profile-matching path this returns before reaching). It exists to
+    // catch a scholarship-portal source going down or getting blocked on a
+    // schedule, instead of a real student's run being the first to
+    // discover it. It reuses the same generateContentWithRetry built above
+    // (extraction from a scraped page's text genuinely needs an LLM call,
+    // see fetchAndExtractListings in scrape.js) but skips detail-page
+    // enrichment (enrichLimitPerSource: 0), which is the more expensive,
+    // per-listing LLM cost this mode has no reason to pay for.
+    if (input.maintenanceRun) {
+        console.log('Maintenance run: scraping every education-level source to check they still work, no profile attached, no billing.');
+        const client = await Actor.newClient();
+        for (const level of ['High school', 'Bachelors', 'Masters', 'PhD']) {
+            const sourceKeys = sourceKeysForEducationLevel(level);
+            try {
+                const listings = await scrapeListings({
+                    client,
+                    generateContentWithRetry,
+                    actorSetValue: (...args) => Actor.setValue(...args),
+                    sourceKeys,
+                    enrichLimitPerSource: 0,
+                });
+                console.log(`Maintenance scrape for ${level}: ${listings.length} listing(s) from ${sourceKeys.join(', ')}.`);
+            } catch (err) {
+                // One source/level failing shouldn't stop the others from
+                // still being checked in this same run.
+                console.log(`Maintenance scrape failed for ${level}, skipping: ${err.message}`);
+            }
+        }
+        await Actor.exit();
+        // Actor.exit() ends the run on Apify's side but does not itself halt
+        // JS execution (this is top-level script code, not inside a
+        // function, so there's no `return` to reach for) — without this,
+        // execution would fall through into the profile-matching code below
+        // with an empty profile. process.exit(0) is the actual stop.
+        process.exit(0);
+    }
+
     // Pick the scholarship-portal site matching the student's own education
     // level (Bachelorsportal/Mastersportal/PhDportal — sibling sites, same
     // network, one per level) instead of always scraping PhD listings

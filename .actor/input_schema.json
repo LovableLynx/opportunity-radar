@@ -95,7 +95,7 @@
       "title": "GPA / grade value (optional)",
       "type": "string",
       "editor": "textfield",
-      "description": "The number or grade itself, matching the format picked above: CGPA → just the number (e.g. 4.5); Percentage → just the number (e.g. 72); Classification → e.g. First Class, Second Class Upper; WAEC/NECO → e.g. \"English: B3, Mathematics: B2\"; Other → any format, e.g. 8/10.",
+      "description": "The number or grade itself, matching the format picked above: CGPA → just the number (e.g. 4.5); Percentage → just the number (e.g. 72); Classification → e.g. First Class, Second Class Upper; WAEC/NECO → comma-separated \"Subject: Grade\" pairs, e.g. \"English: B3, Mathematics: B2, Biology: C4, Chemistry: C5, Physics: C6\" (the website requires at least 5 subjects, but this field itself accepts any number); Other → any format, e.g. 8/10.",
       "nullable": true
     },
     "cvFile": {

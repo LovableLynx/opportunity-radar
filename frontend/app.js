@@ -125,9 +125,13 @@ document.getElementById('cvFile').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   const status = document.getElementById('cv-file-status');
   const error = document.getElementById('error-cvFile');
+  const dropzone = document.getElementById('cv-dropzone');
+  const dropzoneText = document.getElementById('cv-dropzone-text');
   status.hidden = true;
   error.hidden = true;
   extractedCvText = null;
+  dropzone.classList.remove('has-file');
+  dropzoneText.innerHTML = 'Upload your CV<br><span class="cv-dropzone-cta">Choose file</span>';
 
   if (!file) return;
 
@@ -151,6 +155,8 @@ document.getElementById('cvFile').addEventListener('change', async (e) => {
     return;
   }
 
+  dropzone.classList.add('has-file');
+  dropzoneText.textContent = `${file.name} — reading…`;
   status.textContent = `Reading ${file.name}…`;
   status.hidden = false;
 
@@ -182,10 +188,13 @@ document.getElementById('cvFile').addEventListener('change', async (e) => {
 
     extractedCvText = text;
     status.textContent = `${file.name} read successfully (${text.length.toLocaleString()} characters).`;
+    dropzoneText.innerHTML = `<span class="cv-dropzone-filename">${file.name} · File selected</span>`;
   } catch (err) {
     status.hidden = true;
     error.textContent = "Couldn't read that PDF. Paste your CV as text below instead.";
     error.hidden = false;
+    dropzone.classList.remove('has-file');
+    dropzoneText.innerHTML = 'Upload your CV<br><span class="cv-dropzone-cta">Choose file</span>';
   }
 });
 

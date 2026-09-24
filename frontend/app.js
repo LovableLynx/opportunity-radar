@@ -159,7 +159,7 @@ document.getElementById('cvFile').addEventListener('change', async (e) => {
   }
 
   if (!(await looksLikePdf(file))) {
-    error.textContent = 'That doesn\'t look like a PDF file. Only PDFs are accepted — paste your CV as text below instead.';
+    error.textContent = 'That doesn\'t look like a PDF file. Only PDFs are accepted, paste your CV as text below instead.';
     error.hidden = false;
     e.target.value = '';
     return;
@@ -172,7 +172,7 @@ document.getElementById('cvFile').addEventListener('change', async (e) => {
   }
 
   dropzone.classList.add('has-file');
-  dropzoneText.textContent = `${file.name} — reading…`;
+  dropzoneText.textContent = `${file.name}: reading…`;
   status.textContent = `Reading ${file.name}…`;
   status.hidden = false;
 

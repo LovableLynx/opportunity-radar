@@ -1,5 +1,9 @@
 # Opportunity Radar
 
+**[Try it live](https://opportunity-radar-by-edubridge.vercel.app)** ·
+**[Source](https://github.com/LovableLynx/opportunity-radar)** ·
+Built for the She Code Africa × Apify BuildHER Hackathon
+
 Most scholarship sites just hand you a list and leave you to figure out two
 things on your own: do you actually qualify, and is the listing even real.
 Opportunity Radar checks both, against real, live-scraped scholarship and
@@ -20,8 +24,6 @@ verdicts, not just a badge.
   payment requests, artificial urgency, vague eligibility) and cross-checked
   against real web search results. "Low Risk" means no red flags were
   found, not "guaranteed legitimate."
-
-**Live site:** [opportunity-radar-by-edubridge.vercel.app](https://opportunity-radar-by-edubridge.vercel.app)
 
 ## How it works
 
@@ -173,6 +175,13 @@ better and to grow without a rewrite.
 
 ## Further reading
 
-The deeper technical write-ups, architecture decisions, what's been tested
-and how, background on specific tradeoffs, live in the PDFs in this repo
-and in code comments near the relevant logic, rather than in this README.
+Deeper write-ups live at the repo root rather than in this README:
+
+- `Opportunity-Radar-One-Pager.pdf`, the elevator pitch
+- `Opportunity-Radar-Build-Plan.pdf`, architecture and technical decisions
+- `Opportunity-Radar-PRD-Monetization-Addendum.pdf`, the PPE pricing rationale
+- `Opportunity-Radar-Status-Update.pdf` / `Opportunity-Radar-Team-Brief.pdf`,
+  project status and team notes
+
+Specific tradeoffs (why a check works the way it does, a bug that shaped a
+fix) are documented as comments next to the relevant code, not repeated here.

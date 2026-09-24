@@ -61,6 +61,26 @@ API with the same input shape described below.
 | `cvFile` | no | Upload a CV as PDF (max 5MB), text is extracted automatically |
 | `cvText` | no | Plain text of your CV, used if no PDF is uploaded |
 
+## Known Apify Console limitations
+
+Two things worth knowing if you're testing the Actor directly in Apify
+Console rather than through the website, both genuine platform constraints,
+not gaps in this Actor's own logic:
+
+- **No autocomplete/suggestions on `fieldOfStudy`.** The website's form
+  suggests real field names as you type (catching a typo like "Business
+  Administartion" before it's submitted); Console's auto-generated Input
+  form has no equivalent for a plain text field, so it stays free text
+  there. The Actor itself still checks the input isn't obvious gibberish
+  (too short or no vowels at all) before starting a real, billed run.
+- **`cvFile`'s upload dialog can't be restricted to PDF only.** Apify's
+  `fileupload` input editor has no schema-level file-type restriction; any
+  file can be selected in Console's upload box regardless of what a field's
+  title says. This Actor checks the real file signature (the literal
+  `%PDF-` bytes a genuine PDF always starts with, not the filename or
+  extension) before trusting it, so a non-PDF upload is safely rejected
+  with a clear error rather than silently misread.
+
 ## Output
 
 One record per listing. Full field definitions live in

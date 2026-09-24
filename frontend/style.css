@@ -10,6 +10,7 @@
   --input-fill: #EDF5F4;
   --input-fill-hover: #E6F1EF;
   --page-bg: #F8FAFC;
+  --accent-dark: #115E59;
   --success: #15803D;
   --success-soft: #DCFCE7;
   --danger: #DC2626;
@@ -31,6 +32,7 @@
     --input-fill: #1B2842;
     --input-fill-hover: #22314F;
     --page-bg: #0B1120;
+    --accent-dark: #14B8A6;
     --success: #4ADE80;
     --success-soft: #14301F;
     --danger: #F09A9A;
@@ -52,6 +54,7 @@
   --input-fill: #1B2842;
   --input-fill-hover: #22314F;
   --page-bg: #0B1120;
+  --accent-dark: #14B8A6;
   --success: #4ADE80;
   --success-soft: #14301F;
   --danger: #F09A9A;
@@ -213,7 +216,7 @@ main { padding-inline: 20px; }
 }
 .btn:active { transform: scale(0.98); }
 .btn-primary { background: var(--accent); color: #FFFFFF; }
-.btn-primary:hover { background: #0B5A54; }
+.btn-primary:hover { background: var(--accent-dark); }
 .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
 .btn-ghost:hover { border-color: var(--accent); color: var(--accent-ink); }
 .btn-full { width: 100%; margin-top: 8px; }

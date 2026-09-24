@@ -584,6 +584,18 @@ for (const name of COUNTRIES) {
   document.getElementById('country').appendChild(option);
 }
 
+// Populate the fieldOfStudy <datalist> from fields-of-study.js (loaded as a
+// plain global before this script). This stays a free-text input, just with
+// suggestions: typing "Business Admin" surfaces the correctly spelled
+// "Business Administration" to pick, catching a typo like "Business
+// Administartion" (seen in a real test run) before it reaches every
+// listing's scrapedFor record, without blocking a field not on this list.
+for (const name of FIELDS_OF_STUDY) {
+  const option = document.createElement('option');
+  option.value = name;
+  document.getElementById('fieldOfStudyOptions').appendChild(option);
+}
+
 // Live feedback as the student types or leaves a field, instead of only
 // finding out on submit (or worse, only after a server round-trip).
 document.getElementById('fieldOfStudy').addEventListener('blur', (e) => {

@@ -148,7 +148,8 @@
 
         <div class="field">
           <label for="fieldOfStudy">Field you want to study</label>
-          <input type="text" id="fieldOfStudy" placeholder="e.g. Computer Science" required>
+          <input type="text" id="fieldOfStudy" list="fieldOfStudyOptions" placeholder="e.g. Computer Science" autocomplete="off" required>
+          <datalist id="fieldOfStudyOptions"></datalist>
           <p class="field-error" id="error-fieldOfStudy" hidden>Please enter your field of study.</p>
         </div>
 
@@ -280,6 +281,7 @@
 </main>
 
 <script src="countries.js"></script>
+<script src="fields-of-study.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

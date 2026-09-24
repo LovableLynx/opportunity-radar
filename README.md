@@ -210,9 +210,9 @@ better and to grow without a rewrite.
 
 | Name | Role |
 | --- | --- |
-| Oluwadarasimi (LovableLynx) | Project lead, backend, QA / test automation |
-| Peace | Frontend |
-| Temilade | Design |
+| Oluwadarasimi Olowe | Project lead, backend, QA / test automation |
+| Peace Sandy | Frontend Developer |
+| Temilade Ajiboye | UI/UX Designer |
 
 ## Further reading
 

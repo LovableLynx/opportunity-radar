@@ -287,6 +287,16 @@ if (input.compareListingA && input.compareListingB) {
         // 10 is the safer number, chosen to reliably stay under that TPM
         // ceiling on a typical free key rather than risk any fallback.
         enrichLimitPerSource: 10,
+        // Was implicitly 1 page (~20 listings, whatever a single summary
+        // page happened to hold). Verified live (2026-09-24, Playwright) that
+        // phdportal/bachelorsportal/mastersportal all paginate with a real,
+        // working "?page=N" param with hundreds of pages available, and that
+        // page 2 returns genuinely different listings, not a duplicate. 2 is
+        // a first, conservative test value (roughly doubles listings to
+        // ~40) — not yet verified live end-to-end for real run time/cost/
+        // rate-limit impact, so raise further only after confirming that on
+        // the test account first.
+        pagesPerSource: isTestRun ? 1 : 2,
     });
 
     console.log(`Matching and trust-scoring ${listings.length} listings against the student profile.`);

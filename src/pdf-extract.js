@@ -6,7 +6,21 @@
 // Node-compatible legacy build, so a CV uploaded directly to the Actor gets
 // the same real extraction the website gives it, not silently ignored.
 
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+// Loaded lazily inside extractPdfText, not as a static top-level import.
+// pdfjs-dist pulls in an optional native canvas package that isn't always
+// resolvable in every build environment (seen on a teammate's fresh Apify
+// build: "Cannot find module '@napi-rs/canvas'"). We only use pdfjs-dist for
+// text extraction, never rendering, so we don't need canvas at all — but a
+// static import still fails at module-load time before our own try/catch
+// exists, crashing the whole Actor before it does any work. A dynamic
+// import() inside the function keeps that failure local and recoverable.
+let pdfjsLibPromise;
+function loadPdfjsLib() {
+    if (!pdfjsLibPromise) {
+        pdfjsLibPromise = import('pdfjs-dist/legacy/build/pdf.mjs');
+    }
+    return pdfjsLibPromise;
+}
 
 // Mirrors frontend/app.js's looksLikePdf: checks the actual file signature
 // (a real PDF always starts with the literal bytes "%PDF-"), not a
@@ -32,6 +46,13 @@ const MIN_EXTRACTED_PDF_TEXT_LENGTH = 30;
 export async function extractPdfText(buffer) {
     if (!looksLikePdf(buffer)) {
         return { text: '', error: "That doesn't look like a real PDF file (missing PDF file signature)." };
+    }
+
+    let pdfjsLib;
+    try {
+        pdfjsLib = await loadPdfjsLib();
+    } catch (err) {
+        return { text: '', error: `PDF extraction isn't available right now: ${err.message}` };
     }
 
     let pdf;

@@ -115,12 +115,21 @@ export async function matchListing(listing, profile, generateContentWithRetry, c
     // language — this is the part a rule genuinely can't resolve.
     const eligibilityText = listing.eligibility ?? '';
     if (!eligibilityText) {
+        // A listing with no confirmed link could never be enriched and can't
+        // be clicked through to verify — a distinct, worse gap than simply
+        // having no extra eligibility text on an otherwise real, linkable
+        // listing. Both still pass hard requirements (nothing found them
+        // ineligible), so this stays "Eligible", but the interpretation text
+        // says which situation it actually is instead of always defaulting
+        // to the same generic line.
         return {
             hardRequirementsMet: true,
             eligibilityMatch: 'Eligible',
             eligibilityConfidence: 'Unverified',
             missingRequirements: [],
-            llmInterpretation: 'No eligibility text available to check beyond hard requirements.',
+            llmInterpretation: listing.link
+                ? 'No eligibility text available to check beyond hard requirements.'
+                : 'No link was found for this listing, so it could not be checked further or verified — treat with extra caution.',
             actionSteps: [],
             usedCvEvidence: false,
         };

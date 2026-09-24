@@ -7,21 +7,33 @@
 // structured listings, instead of guessing CSS selectors against a page we
 // can't reliably render ourselves.
 
+// paginationParam: verified live (2026-09-24, Playwright, real rendered
+// pages, not guessed) — all three studyportals.com sibling sites use the
+// same "?page=N" query param, confirmed by following the actual "Next page"
+// link in each site's own markup (bachelorsportal: 372 pages, mastersportal:
+// 549, phdportal: 123 — plenty of headroom), and confirmed page 2 returns
+// genuinely different listings, not a duplicate or redirect back to page 1.
+// opportunitydesk is a different site (WordPress category page), not part of
+// that family, and was never checked — left without paginationParam so it's
+// untouched by this, one page only, exactly as before.
 export const SOURCES = {
     phdportal: {
         name: 'phdportal',
         startUrl: 'https://www.phdportal.com/search/scholarships/phd',
         description: 'PhDportal scholarship listing page',
+        paginationParam: 'page',
     },
     bachelorsportal: {
         name: 'bachelorsportal',
         startUrl: 'https://www.bachelorsportal.com/search/scholarships/bachelor',
         description: 'Bachelorsportal scholarship listing page',
+        paginationParam: 'page',
     },
     mastersportal: {
         name: 'mastersportal',
         startUrl: 'https://www.mastersportal.com/search/scholarships/master',
         description: 'Mastersportal scholarship listing page',
+        paginationParam: 'page',
     },
     opportunitydesk: {
         name: 'opportunitydesk',
@@ -46,13 +58,67 @@ export function sourceKeysForEducationLevel(educationLevel) {
     return ['phdportal'];
 }
 
-async function fetchAndExtractListings({ client, generateContentWithRetry, actorSetValue, source }) {
+// Builds the search-results start URLs to crawl for one source: just the
+// base startUrl when pagesPerSource is 1 or the source has no verified
+// pagination scheme, otherwise the base URL plus "?<paginationParam>=2",
+// "=3", etc. up to pagesPerSource, using the exact param name confirmed live
+// against the real rendered page's own "Next page" link (see SOURCES above).
+function buildPageUrls(source, pagesPerSource) {
+    if (pagesPerSource <= 1 || !source.paginationParam) return [source.startUrl];
+    const urls = [source.startUrl];
+    const hasQuery = source.startUrl.includes('?');
+    for (let page = 2; page <= pagesPerSource; page++) {
+        const separator = hasQuery ? '&' : '?';
+        urls.push(`${source.startUrl}${separator}${source.paginationParam}=${page}`);
+    }
+    return urls;
+}
+
+// Extracts listings from one already-fetched page's text. Split out of
+// fetchAndExtractListings so pagination can call it once per page without
+// duplicating the parsing/normalizing logic.
+async function extractListingsFromText({ generateContentWithRetry, source, pageText, pageLabel }) {
+    try {
+        const extraction = await generateContentWithRetry(
+            `Here is the text/markdown content of a scholarship listing page (${source.description}). Extract every distinct scholarship/opportunity listing you can find as a JSON array. For each one include: title, link (the URL to the listing's own detail page, if one appears in the content, otherwise null), deadline (if stated), description (short summary), and eligibility (any stated requirements, as plain text). If a field isn't present, use null. Return ONLY the JSON array, no other text.\n\nPAGE CONTENT:\n${pageText.slice(0, 15000)}`,
+        );
+        const rawText = extraction.response.text() ?? '[]';
+        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+        // The LLM is asked for link: null when none is found, but in practice
+        // sometimes omits the key or returns "undefined" as a literal string
+        // instead — either of which used to reach the final output record as
+        // a bare `undefined`, indistinguishable from a listing that simply
+        // has no extra detail text. A listing with no confirmed link can
+        // never be enriched or clicked through to verify, which is a real,
+        // distinct gap worth flagging, not silently folding into "Eligible,
+        // no eligibility text available".
+        return parsed.map((l) => ({
+            ...l,
+            link: (l.link && l.link !== 'undefined') ? l.link : null,
+        }));
+    } catch (err) {
+        // Covers both a parse failure (bad JSON back from the LLM) and the
+        // call itself failing (rate limit exhausted, bad model name,
+        // network death) — either way this one page contributes nothing
+        // instead of taking down the whole run. One page failing already
+        // degraded gracefully for a parse error before this; now it does
+        // for a call failure too, the gap that let a single dead model name
+        // crash a run that had already scraped everything else.
+        console.log(`Could not extract listings for ${source.name} (${pageLabel}), skipping this page for this run: ${err.message}`);
+        return [];
+    }
+}
+
+async function fetchAndExtractListings({ client, generateContentWithRetry, actorSetValue, source, pagesPerSource = 1 }) {
+    const pageUrls = buildPageUrls(source, pagesPerSource);
+
     let items;
     try {
         const contentCrawlerRun = await client.actor('apify/website-content-crawler').call({
-            startUrls: [{ url: source.startUrl }],
+            startUrls: pageUrls.map((url) => ({ url })),
             crawlerType: 'playwright:firefox',
-            maxCrawlPages: 1,
+            maxCrawlPages: pageUrls.length,
             // Markdown output keeps [text](url) links, which plain text strips out and
             // we need those links to visit each listing's own detail page.
             saveMarkdown: true,
@@ -73,38 +139,42 @@ async function fetchAndExtractListings({ client, generateContentWithRetry, actor
         return [];
     }
 
-    const pageText = items[0].markdown ?? items[0].text ?? '';
+    let allListings = [];
+    for (let i = 0; i < items.length; i++) {
+        const pageText = items[i].markdown ?? items[i].text ?? '';
+        const pageLabel = `page ${i + 1} of ${items.length}`;
 
-    if (!pageText) {
-        console.log(`Fetched page for ${source.name} had no text/markdown content — skipping this source for this run.`);
-        return [];
+        if (!pageText) {
+            console.log(`Fetched ${pageLabel} for ${source.name} had no text/markdown content — skipping this page for this run.`);
+            continue;
+        }
+
+        if (actorSetValue) {
+            const key = items.length > 1
+                ? `SEARCH_PAGE_RAW_${source.name.toUpperCase()}_P${i + 1}`
+                : `SEARCH_PAGE_RAW_${source.name.toUpperCase()}`;
+            await actorSetValue(key, pageText, { contentType: 'text/plain' });
+        }
+
+        const pageListings = await extractListingsFromText({ generateContentWithRetry, source, pageText, pageLabel });
+        allListings = allListings.concat(pageListings);
     }
 
-    if (actorSetValue) {
-        await actorSetValue(`SEARCH_PAGE_RAW_${source.name.toUpperCase()}`, pageText, { contentType: 'text/plain' });
-    }
+    // Different pages of the same search can occasionally surface the same
+    // listing twice (sites re-sorting between requests, a listing pinned to
+    // more than one page). De-duplicate by link when we have one — the only
+    // reliable unique identifier a listing has — and otherwise by title, so
+    // genuine duplicates don't double-count as separate results.
+    const seen = new Set();
+    const listings = allListings.filter((l) => {
+        const key = l.link || l.title;
+        if (!key) return true; // nothing to de-dupe against, keep it
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
 
-    let listings;
-    try {
-        const extraction = await generateContentWithRetry(
-            `Here is the text/markdown content of a scholarship listing page (${source.description}). Extract every distinct scholarship/opportunity listing you can find as a JSON array. For each one include: title, link (the URL to the listing's own detail page, if one appears in the content, otherwise null), deadline (if stated), description (short summary), and eligibility (any stated requirements, as plain text). If a field isn't present, use null. Return ONLY the JSON array, no other text.\n\nPAGE CONTENT:\n${pageText.slice(0, 15000)}`,
-        );
-        const rawText = extraction.response.text() ?? '[]';
-        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
-        listings = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
-    } catch (err) {
-        // Covers both a parse failure (bad JSON back from the LLM) and the
-        // call itself failing (rate limit exhausted, bad model name,
-        // network death) — either way this one source contributes nothing
-        // instead of taking down the whole run. One source failing already
-        // degraded gracefully for a parse error before this; now it does
-        // for a call failure too, the gap that let a single dead model name
-        // crash a run that had already scraped everything else.
-        console.log(`Could not extract listings for ${source.name}, skipping this source for this run: ${err.message}`);
-        return [];
-    }
-
-    console.log(`Extracted ${listings.length} listings from ${source.name} via LLM.`);
+    console.log(`Extracted ${listings.length} listing(s) from ${source.name} across ${items.length} page(s) via LLM.`);
     return listings;
 }
 
@@ -177,6 +247,15 @@ export async function scrapeListings({
     listingLimit,
     sourceKeys = ['phdportal'],
     enrichLimitPerSource = 5,
+    // Was implicitly 1 (a single summary page, whatever count that page
+    // happened to hold — verified live to be ~20 for these sources). Raising
+    // this crawls additional real, verified "?page=N" URLs per source (see
+    // SOURCES' paginationParam comment) instead of stopping at page 1, for
+    // sources where that scheme was actually confirmed. A source without a
+    // verified pagination scheme (opportunitydesk) silently stays at 1 page
+    // regardless of this value — buildPageUrls only pages sources that have
+    // paginationParam set, so this can't send it an unverified URL shape.
+    pagesPerSource = 1,
 }) {
     const activeSources = sourceKeys.map((key) => SOURCES[key]).filter(Boolean);
     if (activeSources.length === 0) {
@@ -190,7 +269,7 @@ export async function scrapeListings({
 
     let combined = [];
     for (const source of activeSources) {
-        const rawListings = await fetchAndExtractListings({ client, generateContentWithRetry, actorSetValue, source });
+        const rawListings = await fetchAndExtractListings({ client, generateContentWithRetry, actorSetValue, source, pagesPerSource });
 
         let listings = rawListings;
         if (listingLimit) {

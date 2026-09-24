@@ -1,32 +1,31 @@
 {
-  "actorSpecification": 1,
+  "actorKeyValueStoreSchemaVersion": 1,
   "title": "Opportunity Radar key-value store",
-  "schemaVersion": 1,
   "properties": {
     "DIGEST": {
       "title": "Results digest",
       "description": "A plain-language summary of the run: how many listings were eligible, partial, not eligible, and their trust breakdown.",
-      "type": "object"
+      "editor": "json"
     },
     "CROSS_LISTING_PATTERNS": {
       "title": "Cross-listing patterns (this run)",
       "description": "Suspicious phrases that repeated across 3+ independent listings in this run, the raw signal the learned-pattern library grows from.",
-      "type": "object"
+      "editor": "json"
     },
     "LEARNED_SCAM_PATTERNS": {
       "title": "Learned scam patterns (persisted)",
       "description": "The full, growing library of scam phrases learned across all past runs, capped at 100. Loaded fresh on every run and checked against on top of the fixed starting rule set.",
-      "type": "array"
+      "editor": "json"
     },
     "LEARNED_PATTERNS_SUMMARY": {
       "title": "Learned patterns summary",
       "description": "A quick-glance view of the learned-pattern library: total count, how many were added this run, and a few recent examples.",
-      "type": "object"
+      "editor": "json"
     },
     "SEARCH_PAGE_RAW_*": {
       "title": "Raw scraped page text",
       "description": "The raw markdown/text fetched from one search-results page for one source, before LLM extraction. Named per source (e.g. SEARCH_PAGE_RAW_BACHELORSPORTAL) and, when a source is paginated, per page (e.g. SEARCH_PAGE_RAW_BACHELORSPORTAL_P2). Kept for debugging what the LLM actually saw.",
-      "type": "string"
+      "editor": "textfile"
     }
   }
 }

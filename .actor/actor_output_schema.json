@@ -1,0 +1,6 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Opportunity Radar output",
+  "description": "One record per scholarship/grant listing: whether the student's profile is eligible for it, and how trustworthy it looks, both with the reasoning shown. See the run's Output tab for the full, per-field dataset schema.",
+  "properties": {}
+}

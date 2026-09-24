@@ -372,6 +372,22 @@ if (input.compareListingA && input.compareListingB) {
                 newPhrases,
             );
         }
+
+        // A visible, standalone summary of the Actor's growing scam-pattern
+        // library: not a new detection feature, just making an existing one
+        // (learned-patterns.js already persists this across every run) easy
+        // to see in Console's Key-Value Store tab without digging through
+        // CROSS_LISTING_PATTERNS or reading logs. The whole point is that
+        // this number should only ever grow across runs, evidence the trust
+        // model is a living system, not a fixed one shipped once and never
+        // touched again.
+        const allLearnedPhrases = await loadLearnedPatterns((key) => Actor.getValue(key));
+        await Actor.setValue('LEARNED_PATTERNS_SUMMARY', {
+            totalLearnedPatterns: allLearnedPhrases.length,
+            newThisRun: crossListing.patterns.length,
+            examplePhrases: allLearnedPhrases.slice(-5),
+        });
+        console.log(`Scam-pattern library: ${allLearnedPhrases.length} learned pattern(s) total, ${crossListing.patterns.length} new this run.`);
     } catch (err) {
         console.log(`Could not run cross-listing pattern detection: ${err.message}`);
     }

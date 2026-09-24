@@ -25,10 +25,14 @@ const MAX_LENGTHS = {
     groqApiKey: 200,
 };
 
-// No strict Groq key format check here (unverified assumption risks
-// rejecting a real key) — just presence and a length sanity cap. Real
-// validation happens at Groq's own API: an invalid key fails there with a
-// 401, surfaced back through the Actor's run status.
+// Confirmed against a real Groq key: "gsk_" followed by 52 alphanumeric
+// characters (56 total). Allowing 40-64 chars after the prefix instead of
+// hardcoding exactly 52 is deliberate slack for Groq changing key length in
+// the future without this rejecting an otherwise-real key; this is still a
+// plausibility check; Groq's own API is the real source of truth and an
+// actually-invalid key fails there with a 401, surfaced through the run
+// status either way.
+const GROQ_KEY_PATTERN = /^gsk_[A-Za-z0-9]{40,64}$/;
 
 // A real production test caught this: submitting fieldOfStudy="hy" and
 // gpaOrGrade="00" passed every check above (both are non-empty strings
@@ -107,6 +111,8 @@ export function validateProfile(body) {
         fieldErrors.groqApiKey = 'groqApiKey is required. Get a free one at https://console.groq.com/keys.';
     } else if (groqApiKey.length > MAX_LENGTHS.groqApiKey) {
         fieldErrors.groqApiKey = `groqApiKey is too long (max ${MAX_LENGTHS.groqApiKey} characters).`;
+    } else if (!GROQ_KEY_PATTERN.test(groqApiKey.trim())) {
+        fieldErrors.groqApiKey = 'That doesn\'t look like a real Groq API key (should start with "gsk_").';
     }
 
     if (typeof educationLevel !== 'string' || !EDUCATION_LEVELS.includes(educationLevel)) {

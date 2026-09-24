@@ -16,7 +16,7 @@ function validProfile(overrides = {}) {
         fieldOfStudy: 'Computer Science',
         country: 'Nigeria',
         fundingNeeded: true,
-        groqApiKey: 'gsk_test_key_1234567890',
+        groqApiKey: 'gsk_'.padEnd(56, 'a1B2c3'), // realistic shape: gsk_ + 52 alphanumeric chars
         ...overrides,
     };
 }
@@ -200,4 +200,11 @@ test('groqApiKey is required (bring-your-own-key: the run happens on the student
 
 test('groqApiKey has a length cap', () => {
     assertInvalid(validProfile({ groqApiKey: 'gsk_'.padEnd(250, 'x') }), 'groqApiKey');
+});
+
+test('groqApiKey must look like a real Groq key (gsk_ prefix, confirmed against a real key)', () => {
+    assertInvalid(validProfile({ groqApiKey: 'not-a-real-key' }), 'groqApiKey');
+    assertInvalid(validProfile({ groqApiKey: 'sk-1234567890abcdef' }), 'groqApiKey'); // OpenAI-shaped, not Groq
+    assertInvalid(validProfile({ groqApiKey: 'gsk_tooshort' }), 'groqApiKey');
+    assertValid(validProfile()); // validProfile()'s default is already a realistically-shaped key
 });

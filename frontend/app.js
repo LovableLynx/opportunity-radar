@@ -315,6 +315,20 @@ function plausibleTextError(value, label) {
   return null;
 }
 
+// Confirmed against a real Groq key: "gsk_" + 52 alphanumeric characters (56
+// total). 40-64 is deliberate slack for Groq changing key length later.
+// Keep in sync with api/start-run.js's GROQ_KEY_PATTERN.
+const GROQ_KEY_PATTERN = /^gsk_[A-Za-z0-9]{40,64}$/;
+
+function groqApiKeyError(value) {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return null; // presence is checked separately by validateForm
+  if (!GROQ_KEY_PATTERN.test(trimmed)) {
+    return 'That doesn\'t look like a real Groq API key (should start with "gsk_").';
+  }
+  return null;
+}
+
 const GPA_FRACTION_PATTERN = /^\d+(\.\d+)?\s*\/\s*\d+(\.\d+)?$/;
 const GPA_PERCENT_PATTERN = /^\d+(\.\d+)?\s*%$/;
 const GPA_BARE_NUMBER_PATTERN = /^\d+(\.\d+)?$/;
@@ -626,6 +640,14 @@ function validateForm() {
       showFieldError(id);
       hasError = true;
     }
+  }
+
+  // Only checked once presence already passed above, so a blank field shows
+  // just "required", not both errors stacked.
+  const groqKeyError = groqApiKeyError(document.getElementById('groqApiKey').value);
+  if (groqKeyError) {
+    showFieldError('groqApiKey', groqKeyError);
+    hasError = true;
   }
 
   const fieldOfStudyError = plausibleTextError(document.getElementById('fieldOfStudy').value, 'field of study');

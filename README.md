@@ -1,5 +1,8 @@
 # Opportunity Radar
 
+Find scholarships and grants you actually qualify for, and spot the ones
+that look suspicious, before you spend hours applying.
+
 **[Try it live](https://opportunity-radar-by-edubridge.vercel.app)** ·
 **[Source](https://github.com/LovableLynx/opportunity-radar)** ·
 🏆 **4th place** at the She Code Africa × Apify BuildHER Hackathon
@@ -24,6 +27,30 @@ Under the hood, most scholarship-related Actors on the Apify Store stop at
 scraping: they return a raw list and leave the actual matching and trust
 judgment to you. Opportunity Radar does that work itself, with evidence
 behind both verdicts, not just a badge.
+
+## Who it's for
+
+- Students at high school, Bachelors, Masters, or PhD level looking for
+  scholarships or grants abroad, built with African students in mind
+- Anyone tired of reading long eligibility text only to find out at the end
+  that they don't qualify
+- Anyone who wants a second opinion on whether a listing looks legitimate
+
+## How to use it
+
+1. **Get a free Groq API key.** Sign up at
+   [console.groq.com/keys](https://console.groq.com/keys) and click
+   "Create API Key". It's free and takes about a minute. Opportunity Radar
+   uses it to read and judge each listing.
+2. **Fill in your profile.** Education level, field of study, your country,
+   and whether you need funding. Your GPA and CV are optional, but adding
+   them helps with requirements that aren't clear-cut.
+3. **Run it**, either on the [website](https://opportunity-radar-by-edubridge.vercel.app)
+   or directly here on Apify. A run usually takes 5 to 7 minutes, because it
+   checks live listings one by one.
+4. **Read your results.** Each listing says whether you're eligible (and if
+   not, exactly why), how much time is left before the deadline, and whether
+   anything about it looks off.
 
 ## How it works
 
@@ -204,8 +231,10 @@ npm run test:api       # API route validation tests
 ## Monetization
 
 Opportunity Radar uses Apify's Pay-Per-Event pricing, one billable event per
-listing that's been fully matched and trust-scored. The price itself is set
-in Apify Console, not in this repo.
+listing that's been fully matched and trust-scored: $0.03 per listing, plus
+a tiny $0.00005 start fee per run. A run usually returns 20 to 60 listings,
+so it typically costs about $0.60 to $1.80. The AI part runs on your own
+free Groq key, so there's no separate AI bill on top.
 
 Other scholarship Actors on the Store charge per scraped result, typically
 $0.35–$6.00 per 1,000 listings, for raw data with no eligibility or trust
@@ -241,6 +270,33 @@ better and to grow without a rewrite.
   [github.com/LovableLynx/opportunity-radar](https://github.com/LovableLynx/opportunity-radar),
   so the matching and trust-scoring logic can be reviewed, adapted, or
   built on by anyone, not locked inside a black-box Actor.
+
+## FAQ
+
+**Do I really need a Groq API key?**
+Yes, but it's free. Get one at [console.groq.com/keys](https://console.groq.com/keys).
+It means the AI part runs on your own account, so the tool doesn't have to
+charge you for it.
+
+**What happens to my CV?**
+If you add one, its text is used during your run to check requirements that
+aren't clear-cut, like "research experience preferred." It's sent to Groq
+on your own key for that check, and it isn't copied into your results. Like
+any Apify run, your input stays in that run's own storage on your account.
+
+**Which countries does it work for?**
+You can pick any country. It was built with African students in mind, but
+eligibility checks work the same way for everyone.
+
+**Does "Low Risk" mean a scholarship is definitely real?**
+No. It means none of the warning signs we check for turned up. Always
+confirm on the provider's official website before applying or sharing any
+personal information.
+
+**Why does a run take several minutes?**
+It visits live scholarship sites and checks each listing one by one. Some
+sites try to block automated visitors, and the tool retries until it gets
+through, which takes time.
 
 ## Team
 

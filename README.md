@@ -6,24 +6,24 @@
 
 Most scholarship sites just hand you a list and leave you to figure out two
 things on your own: do you actually qualify, and is the listing even real.
-Opportunity Radar checks both, against real, live-scraped scholarship and
-grant listings.
+Opportunity Radar checks both, using real scholarship and grant listings
+found live on the web, not a stale database.
 
-Most scholarship-related Actors on the Apify Store stop at scraping: they
-return a list, sometimes with a raw `eligibility` text field lifted straight
-from the page, and leave the actual matching and trust judgment to you.
-Opportunity Radar does that work itself: every listing gets checked against
-your specific profile and scored for scam risk, with evidence behind both
-verdicts, not just a badge.
+- **Do I qualify?** Your deadline, nationality, and education level are
+  checked against what each listing actually requires, so you're not left
+  guessing based on the title alone. If a listing only mentions something
+  vague, like "preference for applicants with research experience," that
+  gets flagged too, not silently ignored.
+- **Is it real?** Every listing is checked for common warning signs, like
+  being asked to pay upfront, pressure to apply immediately, or vague
+  requirements, and cross-checked against what else is said about it
+  online. A "Low Risk" result means nothing suspicious turned up, not a
+  guarantee, so always use your own judgment too.
 
-- **Eligibility.** Deadline, nationality, and education level are checked
-  with plain code, not AI guesswork. An AI model only gets involved for
-  genuinely ambiguous wording, like "preference given to applicants with
-  research experience," and only after the objective checks already pass.
-- **Trust.** Every listing is checked for common scam patterns (upfront
-  payment requests, artificial urgency, vague eligibility) and cross-checked
-  against real web search results. "Low Risk" means no red flags were
-  found, not "guaranteed legitimate."
+Under the hood, most scholarship-related Actors on the Apify Store stop at
+scraping: they return a raw list and leave the actual matching and trust
+judgment to you. Opportunity Radar does that work itself, with evidence
+behind both verdicts, not just a badge.
 
 ## How it works
 

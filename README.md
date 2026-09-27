@@ -2,7 +2,7 @@
 
 **[Try it live](https://opportunity-radar-by-edubridge.vercel.app)** ·
 **[Source](https://github.com/LovableLynx/opportunity-radar)** ·
-Built for the She Code Africa × Apify BuildHER Hackathon
+🏆 **4th place** at the She Code Africa × Apify BuildHER Hackathon
 
 Most scholarship sites just hand you a list and leave you to figure out two
 things on your own: do you actually qualify, and is the listing even real.

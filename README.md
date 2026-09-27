@@ -95,6 +95,42 @@ renders on the run's Output tab. The fields that matter most:
   `trustEvidence` listing the actual reasons and `trustConfidence` saying how
   much evidence the verdict rests on.
 
+## Example run
+
+Sample input, a Bachelors student in Nigeria studying Computer Science:
+
+```json
+{
+  "groqApiKey": "gsk_your_real_key_here",
+  "educationLevel": "Bachelors",
+  "fieldOfStudy": "Computer Science",
+  "country": "Nigeria",
+  "fundingNeeded": true
+}
+```
+
+One real record from an actual run against that profile, trimmed to the
+fields that matter most, showing a genuine field-of-study rejection the LLM
+caught in the listing's own text:
+
+```json
+{
+  "title": "Mary Doctor Fine Arts Scholarship",
+  "link": "https://www.bachelorsportal.com/scholarships/8918/mary-doctor-fine-arts-scholarship.html",
+  "deadline": "19 Mar 2027",
+  "eligibilityMatch": "Not Eligible",
+  "missingRequirements": [
+    "The scholarship requires applicants to plan to pursue an undergraduate degree in an arts discipline (e.g. music, dance, theatre, digital arts, etc.), which does not include Computer Science."
+  ],
+  "trustRisk": "Some Concerns",
+  "trustEvidence": ["No independent web presence found for the sponsoring organization"]
+}
+```
+
+That restriction is stated in the listing's own eligibility text, not
+obvious from the title alone. Every rejection like this comes with the
+specific reason, not just a pass/fail flag.
+
 ## Technologies and tools used
 
 - **[Apify](https://apify.com)**: the Actor itself, plus its `apify/website-content-crawler`
